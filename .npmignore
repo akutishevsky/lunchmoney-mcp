@@ -1,0 +1,24 @@
+# Source files
+src/
+*.ts
+tsconfig.json
+
+# Development files
+CLAUDE.md
+.git/
+.gitignore
+
+# Logs and temp files
+*.log
+npm-debug.log*
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Test files
+*.test.js
+*.spec.js
+coverage/
+.nyc_output/
