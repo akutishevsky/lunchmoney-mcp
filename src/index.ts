@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { Config, initializeConfig, getConfig } from "./config.js";
 
 const server = new McpServer({
     name: "lunchmoney-mcp",
@@ -12,6 +13,8 @@ const server = new McpServer({
 
 (async () => {
     try {
+        initializeConfig();
+
         const transport = new StdioServerTransport();
         await server.connect(transport);
         console.error("Lunchmoney MCP Server running on stdio");
