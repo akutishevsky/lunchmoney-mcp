@@ -217,7 +217,7 @@ server.tool(
                 content: [
                     {
                         type: "text",
-                        text: `Failed to get single category: ${response.statusText}`,
+                        text: `Failed to create a single category: ${response.statusText}`,
                     },
                 ],
             };
