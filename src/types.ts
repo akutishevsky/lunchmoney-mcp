@@ -183,3 +183,24 @@ export interface Asset {
     exclude_transactions: boolean;
     created_at: string;
 }
+
+export interface PlaidAccount {
+    id: number;
+    date_linked: string;
+    name: string;
+    display_name: string;
+    type: string;
+    subtype: string | null;
+    mask: string;
+    institution_name: string;
+    status: string;
+    balance: string;
+    to_base: number | null;
+    currency: string;
+    balance_last_update: string;
+    limit: number | null;
+    import_start_date: string | null;
+    last_import: string | null;
+    last_fetch: string | null;
+    plaid_last_successful_update: string;
+}
