@@ -167,3 +167,19 @@ export interface Budget {
     archived: boolean;
     recurring: any | null;
 }
+
+export interface Asset {
+    id: number;
+    type_name: string;
+    subtype_name: string | null;
+    name: string;
+    display_name: string | null;
+    balance: string;
+    to_base: number | null;
+    balance_as_of: string;
+    closed_on: string | null;
+    currency: string;
+    institution_name: string | null;
+    exclude_transactions: boolean;
+    created_at: string;
+}

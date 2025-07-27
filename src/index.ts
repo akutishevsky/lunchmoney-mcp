@@ -7,6 +7,7 @@ import { registerTagTools } from "./tools/tags.js";
 import { registerTransactionTools } from "./tools/transactions.js";
 import { registerRecurringItemsTools } from "./tools/recurring-items.js";
 import { registerBudgetTools } from "./tools/budgets.js";
+import { registerAssetTools } from "./tools/assets.js";
 
 const server = new McpServer({
     name: "lunchmoney-mcp",
@@ -22,6 +23,7 @@ registerTagTools(server);
 registerTransactionTools(server);
 registerRecurringItemsTools(server);
 registerBudgetTools(server);
+registerAssetTools(server);
 
 (async () => {
     try {
