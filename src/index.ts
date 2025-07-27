@@ -41,6 +41,50 @@ server.tool("get_user", "Get details on the current user", {}, async () => {
     };
 });
 
+server.tool(
+    "get_all_categories",
+    "Get a flattened list of all categories in alphabetical order associated with the user's account.",
+    {
+        input: z.object({
+            format: z
+                .string()
+                .optional()
+                .describe(
+                    "Can either flattened or nested. If flattened, returns a singular array of categories, ordered alphabetically. If nested, returns top-level categories (either category groups or categories not part of a category group) in an array. Subcategories are nested within the category group under the property children."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const format = input.format || "flattened";
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+        const response = await fetch(`${baseUrl}/categories?format=${format}`, {
+            headers: {
+                Authorization: `Bearer ${lunchmoneyApiToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to get all categories: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
