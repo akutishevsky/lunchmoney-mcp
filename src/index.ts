@@ -234,6 +234,118 @@ server.tool(
     }
 );
 
+server.tool(
+    "create_category_group",
+    "Create a single category group.",
+    {
+        input: z.object({
+            name: z
+                .string()
+                .describe(
+                    "Name of category. Must be between 1 and 40 characters."
+                ),
+            description: z
+                .string()
+                .optional()
+                .default("")
+                .describe(
+                    "Description of category. Must be less than 140 characters."
+                ),
+            is_income: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be treated as income."
+                ),
+            exclude_from_budget: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be excluded from budgets."
+                ),
+            exclude_from_totals: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be excluded from calculated totals."
+                ),
+            category_ids: z
+                .array(z.number())
+                .optional()
+                .describe(
+                    "Array of category_id to include in the category group."
+                ),
+            new_categories: z
+                .array(z.string())
+                .optional()
+                .describe(
+                    "Array of strings representing new categories to create and subsequently include in the category group."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const {
+            name,
+            description,
+            is_income,
+            exclude_from_budget,
+            exclude_from_totals,
+            category_ids,
+            new_categories,
+        } = input;
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+        const requestBody: any = {
+            name,
+            description,
+            is_income,
+            exclude_from_budget,
+            exclude_from_totals,
+            category_ids,
+            new_categories,
+        };
+
+        if (category_ids && category_ids.length > 0) {
+            requestBody.category_ids = category_ids;
+        }
+
+        if (new_categories && new_categories.length > 0) {
+            requestBody.new_categories = new_categories;
+        }
+
+        const response = await fetch(`${baseUrl}/categories`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${lunchmoneyApiToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to create a single category group: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
