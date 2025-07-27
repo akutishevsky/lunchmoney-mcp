@@ -346,6 +346,118 @@ server.tool(
     }
 );
 
+server.tool(
+    "update_category",
+    "Update the properties for a single category or category group.",
+    {
+        input: z.object({
+            name: z
+                .string()
+                .describe(
+                    "Name of category. Must be between 1 and 40 characters."
+                ),
+            categoryId: z
+                .string()
+                .describe(
+                    "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids."
+                ),
+            description: z
+                .string()
+                .optional()
+                .default("")
+                .describe(
+                    "Description of category. Must be less than 140 characters."
+                ),
+            is_income: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be treated as income."
+                ),
+            exclude_from_budget: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be excluded from budgets."
+                ),
+            exclude_from_totals: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe(
+                    "Whether or not transactions in this category should be excluded from calculated totals."
+                ),
+            archived: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe("Whether or not category should be archived."),
+            group_id: z
+                .number()
+                .optional()
+                .describe(
+                    "Assigns the newly-created category to an existing category group."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const {
+            name,
+            categoryId,
+            description,
+            is_income,
+            exclude_from_budget,
+            exclude_from_totals,
+            archived,
+            group_id,
+        } = input;
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+        const requestBody: any = {
+            name,
+            description,
+            is_income,
+            exclude_from_budget,
+            exclude_from_totals,
+            archived,
+        };
+
+        if (group_id !== undefined) {
+            requestBody.group_id = group_id;
+        }
+
+        const response = await fetch(`${baseUrl}/categories/${categoryId}`, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${lunchmoneyApiToken}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to update a single category: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
