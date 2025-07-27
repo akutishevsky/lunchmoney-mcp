@@ -204,3 +204,13 @@ export interface PlaidAccount {
     last_fetch: string | null;
     plaid_last_successful_update: string;
 }
+
+export interface Crypto {
+    id: number;
+    name: string;
+    symbol: string;
+    balance: string;
+    to_base: number;
+    currency: string;
+    created_at: string;
+}

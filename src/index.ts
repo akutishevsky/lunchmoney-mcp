@@ -9,6 +9,7 @@ import { registerRecurringItemsTools } from "./tools/recurring-items.js";
 import { registerBudgetTools } from "./tools/budgets.js";
 import { registerAssetTools } from "./tools/assets.js";
 import { registerPlaidAccountTools } from "./tools/plaid-accounts.js";
+import { registerCryptoTools } from "./tools/crypto.js";
 
 const server = new McpServer({
     name: "lunchmoney-mcp",
@@ -26,6 +27,7 @@ registerRecurringItemsTools(server);
 registerBudgetTools(server);
 registerAssetTools(server);
 registerPlaidAccountTools(server);
+registerCryptoTools(server);
 
 (async () => {
     try {
