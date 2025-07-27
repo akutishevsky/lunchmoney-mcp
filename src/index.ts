@@ -525,6 +525,52 @@ server.tool(
     }
 );
 
+server.tool(
+    "delete_category",
+    "Delete a single category or category group. This will only work if there are no dependencies, such as existing budgets for the category, categorized transactions, categorized recurring items, etc. If there are dependents, this endpoint will return what the dependents are and how many there are.",
+    {
+        input: z.object({
+            category_id: z
+                .number()
+                .optional()
+                .describe(
+                    "Id of the category or the category group to delete."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const { category_id } = input;
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+        const response = await fetch(`${baseUrl}/categories/${category_id}`, {
+            method: "DELETE",
+            headers: {
+                Authorization: `Bearer ${lunchmoneyApiToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to delete a single category or category group: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
