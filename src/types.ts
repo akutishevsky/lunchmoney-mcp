@@ -92,3 +92,44 @@ export interface Transaction {
     external_id: string | null;
     tags: Tag[];
 }
+
+export interface SummarizedTransaction {
+    id: number;
+    date: string;
+    amount: string;
+    currency: string;
+    payee: string;
+    category_id: number | null;
+    recurring_id: number | null;
+    to_base: number;
+}
+
+export interface RecurringItem {
+    id: number;
+    start_date: string | null;
+    end_date: string | null;
+    payee: string;
+    currency: string;
+    created_by: number;
+    created_at: string;
+    updated_at: string;
+    billing_date: string;
+    original_name: string | null;
+    description: string | null;
+    plaid_account_id: number | null;
+    asset_id: number | null;
+    source: string;
+    notes: string | null;
+    amount: number;
+    category_id: number | null;
+    category_group_id: number | null;
+    is_income: boolean;
+    exclude_from_totals: boolean;
+    granularity: string;
+    quantity: number | null;
+    occurrences: any;
+    transactions_within_range: SummarizedTransaction[] | null;
+    missing_dates_within_range: string[] | null;
+    date: string | null;
+    to_base: number;
+}
