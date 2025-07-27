@@ -1,0 +1,27 @@
+{
+    "name": "lunchmoney-mcp",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "bin": {
+        "lunchoney-mcp": "./build/index.js"
+    },
+    "scripts": {
+        "build": "tsc && chmod 755 build/index.js"
+    },
+    "files": [
+        "build"
+    ],
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "module",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.17.0",
+        "zod": "^3.25.76"
+    },
+    "devDependencies": {
+        "@types/node": "^24.1.0",
+        "typescript": "^5.8.3"
+    }
+}
