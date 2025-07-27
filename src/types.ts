@@ -133,3 +133,37 @@ export interface RecurringItem {
     date: string | null;
     to_base: number;
 }
+
+export interface BudgetConfig {
+    config_id: number;
+    cadence: string;
+    amount: number;
+    currency: string;
+    to_base: number;
+    auto_suggest: string;
+}
+
+export interface BudgetData {
+    budget_amount: number | null;
+    budget_currency: string | null;
+    budget_to_base: number | null;
+    spending_to_base: number;
+    num_transactions: number;
+    is_automated: boolean | null;
+}
+
+export interface Budget {
+    category_name: string;
+    category_id: number | null;
+    category_group_name: string | null;
+    group_id: number | null;
+    is_group: boolean | null;
+    is_income: boolean;
+    exclude_from_budget: boolean;
+    exclude_from_totals: boolean;
+    data: BudgetData[];
+    config: BudgetConfig | null;
+    order: number;
+    archived: boolean;
+    recurring: any | null;
+}
