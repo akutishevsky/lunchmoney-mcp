@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
+import { Tag } from "../types.js";
 
 export function registerTagTools(server: McpServer) {
     server.tool(
@@ -25,11 +26,13 @@ export function registerTagTools(server: McpServer) {
                 };
             }
 
+            const tags: Tag[] = await response.json();
+            
             return {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(await response.json()),
+                        text: JSON.stringify(tags),
                     },
                 ],
             };

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
+import { Category, CategoryChild } from "../types.js";
 
 export function registerCategoryTools(server: McpServer) {
     server.tool(
@@ -36,11 +37,13 @@ export function registerCategoryTools(server: McpServer) {
                 };
             }
 
+            const categories: Category[] = await response.json();
+            
             return {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(await response.json()),
+                        text: JSON.stringify(categories),
                     },
                 ],
             };
@@ -79,11 +82,13 @@ export function registerCategoryTools(server: McpServer) {
                 };
             }
 
+            const category: Category = await response.json();
+            
             return {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(await response.json()),
+                        text: JSON.stringify(category),
                     },
                 ],
             };
@@ -185,11 +190,13 @@ export function registerCategoryTools(server: McpServer) {
                 };
             }
 
+            const category: Category = await response.json();
+            
             return {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(await response.json()),
+                        text: JSON.stringify(category),
                     },
                 ],
             };

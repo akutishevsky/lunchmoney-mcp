@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
+import { User } from "../types.js";
 
 export function registerUserTools(server: McpServer) {
     server.tool("get_user", "Get details on the current user", {}, async () => {
@@ -21,11 +22,13 @@ export function registerUserTools(server: McpServer) {
             };
         }
 
+        const user: User = await response.json();
+        
         return {
             content: [
                 {
                     type: "text",
-                    text: JSON.stringify(await response.json()),
+                    text: JSON.stringify(user),
                 },
             ],
         };
