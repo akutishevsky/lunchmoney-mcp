@@ -315,7 +315,7 @@ server.tool(
             requestBody.new_categories = new_categories;
         }
 
-        const response = await fetch(`${baseUrl}/categories`, {
+        const response = await fetch(`${baseUrl}/categories/group`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${lunchmoneyApiToken}`,
