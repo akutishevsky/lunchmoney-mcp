@@ -1,6 +1,6 @@
 {
     "name": "@akutishevsky/lunchmoney-mcp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Model Context Protocol server for LunchMoney personal finance management",
     "main": "build/index.js",
     "bin": {
