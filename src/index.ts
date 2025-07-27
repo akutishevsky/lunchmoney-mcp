@@ -571,6 +571,55 @@ server.tool(
     }
 );
 
+server.tool(
+    "force_delete_category",
+    "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!",
+    {
+        input: z.object({
+            category_id: z
+                .number()
+                .optional()
+                .describe(
+                    "Id of the category or the category group to delete."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const { category_id } = input;
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+        const response = await fetch(
+            `${baseUrl}/categories/${category_id}/force`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${lunchmoneyApiToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to force delete a single category or category group: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
