@@ -32,3 +32,10 @@ export interface Category {
     children?: CategoryChild[] | null;
     group_category_name?: string | null;
 }
+
+export interface Tag {
+    id: number;
+    name: string;
+    description: string | null;
+    archived: boolean;
+}
