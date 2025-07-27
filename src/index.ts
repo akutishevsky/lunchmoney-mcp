@@ -458,6 +458,73 @@ server.tool(
     }
 );
 
+server.tool(
+    "add_to_category_group",
+    "Add categories (either existing or new) to a single category group.",
+    {
+        input: z.object({
+            group_id: z.number().describe("Id of the parent group to add to."),
+            category_ids: z
+                .array(z.number())
+                .optional()
+                .describe(
+                    "Array of category_id to include in the category group."
+                ),
+            new_categories: z
+                .array(z.string())
+                .optional()
+                .describe(
+                    "Array of strings representing new categories to create and subsequently include in the category group."
+                ),
+        }),
+    },
+    async ({ input }) => {
+        const { group_id, category_ids, new_categories } = input;
+        const { baseUrl, lunchmoneyApiToken } = getConfig();
+        const requestBody: any = {};
+
+        if (category_ids && category_ids.length > 0) {
+            requestBody.category_ids = category_ids;
+        }
+
+        if (new_categories && new_categories.length > 0) {
+            requestBody.new_categories = new_categories;
+        }
+
+        const response = await fetch(
+            `${baseUrl}/categories/group/${group_id}/add`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(requestBody),
+            }
+        );
+
+        if (!response.ok) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `Failed to add to a single category group: ${response.statusText}`,
+                    },
+                ],
+            };
+        }
+
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: JSON.stringify(await response.json()),
+                },
+            ],
+        };
+    }
+);
+
 (async () => {
     try {
         initializeConfig();
