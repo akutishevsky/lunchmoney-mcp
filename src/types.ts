@@ -39,3 +39,56 @@ export interface Tag {
     description: string | null;
     archived: boolean;
 }
+
+export interface Transaction {
+    id: number;
+    date: string;
+    payee: string;
+    amount: string;
+    currency: string;
+    to_base: number;
+    category_id: number | null;
+    category_name: string | null;
+    category_group_id: number | null;
+    category_group_name: string | null;
+    is_income: boolean;
+    exclude_from_budget: boolean;
+    exclude_from_totals: boolean;
+    created_at: string;
+    updated_at: string;
+    status: string | null;
+    is_pending: boolean;
+    notes: string | null;
+    original_name: string | null;
+    recurring_id: number | null;
+    recurring_payee: string | null;
+    recurring_description: string | null;
+    recurring_cadence: string | null;
+    recurring_type: string | null;
+    recurring_amount: string | null;
+    recurring_currency: string | null;
+    parent_id: number | null;
+    has_children: boolean;
+    group_id: number | null;
+    is_group: boolean;
+    asset_id: number | null;
+    asset_institution_name: string | null;
+    asset_name: string | null;
+    asset_display_name: string | null;
+    asset_status: string | null;
+    plaid_account_id: number | null;
+    plaid_account_name: string | null;
+    plaid_account_mask: string | null;
+    plaid_account_display_name: string | null;
+    institution_name: string | null;
+    plaid_account_type: string | null;
+    plaid_account_subtype: string | null;
+    plaid_metadata?: any | null;
+    type: string | null;
+    subtype: string | null;
+    fees: string | null;
+    price: string | null;
+    quantity: string | null;
+    external_id: string | null;
+    tags: Tag[];
+}
