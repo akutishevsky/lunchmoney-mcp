@@ -8,7 +8,8 @@
     },
     "scripts": {
         "build": "tsc && chmod 755 build/index.js",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run build",
+        "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js"
     },
     "files": [
         "build"
