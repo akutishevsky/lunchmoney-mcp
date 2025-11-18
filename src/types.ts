@@ -1,11 +1,12 @@
 export interface User {
-    user_id: number;
-    user_name: string;
-    user_email: string;
+    id: number;
+    name: string;
+    email: string;
     account_id: number;
     budget_name: string;
     primary_currency: string;
     api_key_label: string | null;
+    debits_as_negative?: boolean;
 }
 
 export interface CategoryChild {
@@ -38,6 +39,9 @@ export interface Tag {
     name: string;
     description: string | null;
     archived: boolean;
+    created_at: string;
+    updated_at: string;
+    archived_at: string | null;
 }
 
 export interface Transaction {
@@ -48,9 +52,6 @@ export interface Transaction {
     currency: string;
     to_base: number;
     category_id: number | null;
-    category_name: string | null;
-    category_group_id: number | null;
-    category_group_name: string | null;
     is_income: boolean;
     exclude_from_budget: boolean;
     exclude_from_totals: boolean;
@@ -61,36 +62,19 @@ export interface Transaction {
     notes: string | null;
     original_name: string | null;
     recurring_id: number | null;
-    recurring_payee: string | null;
-    recurring_description: string | null;
-    recurring_cadence: string | null;
-    recurring_type: string | null;
-    recurring_amount: string | null;
-    recurring_currency: string | null;
     parent_id: number | null;
-    has_children: boolean;
+    is_parent: boolean;
     group_id: number | null;
     is_group: boolean;
-    asset_id: number | null;
-    asset_institution_name: string | null;
-    asset_name: string | null;
-    asset_display_name: string | null;
-    asset_status: string | null;
+    manual_account_id: number | null;
     plaid_account_id: number | null;
-    plaid_account_name: string | null;
-    plaid_account_mask: string | null;
-    plaid_account_display_name: string | null;
-    institution_name: string | null;
-    plaid_account_type: string | null;
-    plaid_account_subtype: string | null;
-    plaid_metadata?: any | null;
     type: string | null;
     subtype: string | null;
     fees: string | null;
     price: string | null;
     quantity: string | null;
     external_id: string | null;
-    tags: Tag[];
+    tag_ids: number[];
 }
 
 export interface SummarizedTransaction {
@@ -113,24 +97,28 @@ export interface RecurringItem {
     created_by: number;
     created_at: string;
     updated_at: string;
-    billing_date: string;
-    original_name: string | null;
-    description: string | null;
-    plaid_account_id: number | null;
-    asset_id: number | null;
-    source: string;
-    notes: string | null;
-    amount: number;
-    category_id: number | null;
-    category_group_id: number | null;
-    is_income: boolean;
-    exclude_from_totals: boolean;
-    granularity: string;
-    quantity: number | null;
-    occurrences: any;
-    transactions_within_range: SummarizedTransaction[] | null;
-    missing_dates_within_range: string[] | null;
-    date: string | null;
+    transaction_criteria: {
+        billing_date: string;
+        original_name: string | null;
+        description: string | null;
+        plaid_account_id: number | null;
+        manual_account_id: number | null;
+    };
+    overrides: {
+        source: string;
+        notes: string | null;
+        amount: number;
+        category_id: number | null;
+        is_income: boolean;
+        exclude_from_totals: boolean;
+    };
+    matches: {
+        granularity: string;
+        quantity: number | null;
+        occurrences: any;
+        transactions_within_range: SummarizedTransaction[] | null;
+        missing_dates_within_range: string[] | null;
+    };
     to_base: number;
 }
 
@@ -168,10 +156,10 @@ export interface Budget {
     recurring: any | null;
 }
 
-export interface Asset {
+export interface ManualAccount {
     id: number;
-    type_name: string;
-    subtype_name: string | null;
+    type: string;
+    subtype: string | null;
     name: string;
     display_name: string | null;
     balance: string;
@@ -182,6 +170,9 @@ export interface Asset {
     institution_name: string | null;
     exclude_transactions: boolean;
     created_at: string;
+    updated_at: string;
+    external_id: string | null;
+    custom_metadata: any | null;
 }
 
 export interface PlaidAccount {
@@ -203,6 +194,7 @@ export interface PlaidAccount {
     last_import: string | null;
     last_fetch: string | null;
     plaid_last_successful_update: string;
+    allow_transaction_modification: boolean;
 }
 
 export interface Crypto {

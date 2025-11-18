@@ -26,7 +26,7 @@ export function registerTransactionTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe("Filter by category ID"),
-                asset_id: z.number().optional().describe("Filter by asset ID"),
+                manual_account_id: z.number().optional().describe("Filter by manual account ID"),
                 is_group: z
                     .boolean()
                     .optional()
@@ -34,7 +34,7 @@ export function registerTransactionTools(server: McpServer) {
                 status: z
                     .string()
                     .optional()
-                    .describe("Filter by status: cleared, uncleared, pending"),
+                    .describe("Filter by status: reviewed, unreviewed, pending"),
                 offset: z
                     .number()
                     .optional()
@@ -70,8 +70,8 @@ export function registerTransactionTools(server: McpServer) {
                 );
             if (input.category_id !== undefined)
                 params.append("category_id", input.category_id.toString());
-            if (input.asset_id !== undefined)
-                params.append("asset_id", input.asset_id.toString());
+            if (input.manual_account_id !== undefined)
+                params.append("manual_account_id", input.manual_account_id.toString());
             if (input.is_group !== undefined)
                 params.append("is_group", input.is_group.toString());
             if (input.status !== undefined)
@@ -206,10 +206,10 @@ export function registerTransactionTools(server: McpServer) {
                                 .number()
                                 .optional()
                                 .describe("Category ID"),
-                            asset_id: z
+                            manual_account_id: z
                                 .number()
                                 .optional()
-                                .describe("Asset ID for manual accounts"),
+                                .describe("Manual account ID"),
                             recurring_id: z
                                 .number()
                                 .optional()
@@ -219,7 +219,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .optional()
                                 .describe("Transaction notes"),
                             status: z
-                                .enum(["cleared", "uncleared", "pending"])
+                                .enum(["reviewed", "unreviewed", "pending"])
                                 .optional()
                                 .describe("Transaction status"),
                             external_id: z
@@ -320,53 +320,49 @@ export function registerTransactionTools(server: McpServer) {
                 transaction_id: z
                     .number()
                     .describe("ID of the transaction to update"),
-                transaction: z
-                    .object({
-                        date: z
-                            .string()
-                            .optional()
-                            .describe("Date in YYYY-MM-DD format"),
-                        payee: z.string().optional().describe("Payee name"),
-                        amount: z
-                            .string()
-                            .optional()
-                            .describe(
-                                "Amount as string with up to 4 decimal places"
-                            ),
-                        currency: z
-                            .string()
-                            .optional()
-                            .describe("Three-letter lowercase currency code"),
-                        category_id: z
-                            .number()
-                            .optional()
-                            .describe("Category ID"),
-                        asset_id: z
-                            .number()
-                            .optional()
-                            .describe("Asset ID for manual accounts"),
-                        recurring_id: z
-                            .number()
-                            .optional()
-                            .describe("Recurring expense ID"),
-                        notes: z
-                            .string()
-                            .optional()
-                            .describe("Transaction notes"),
-                        status: z
-                            .enum(["cleared", "uncleared", "pending"])
-                            .optional()
-                            .describe("Transaction status"),
-                        external_id: z
-                            .string()
-                            .optional()
-                            .describe("External ID (max 75 characters)"),
-                        tags: z
-                            .array(z.number())
-                            .optional()
-                            .describe("Array of tag IDs"),
-                    })
-                    .describe("Transaction data to update"),
+                date: z
+                    .string()
+                    .optional()
+                    .describe("Date in YYYY-MM-DD format"),
+                payee: z.string().optional().describe("Payee name"),
+                amount: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Amount as string with up to 4 decimal places"
+                    ),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe("Three-letter lowercase currency code"),
+                category_id: z
+                    .number()
+                    .optional()
+                    .describe("Category ID"),
+                manual_account_id: z
+                    .number()
+                    .optional()
+                    .describe("Manual account ID"),
+                recurring_id: z
+                    .number()
+                    .optional()
+                    .describe("Recurring expense ID"),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Transaction notes"),
+                status: z
+                    .enum(["reviewed", "unreviewed", "pending"])
+                    .optional()
+                    .describe("Transaction status"),
+                external_id: z
+                    .string()
+                    .optional()
+                    .describe("External ID (max 75 characters)"),
+                tags: z
+                    .array(z.number())
+                    .optional()
+                    .describe("Array of tag IDs"),
                 debit_as_negative: z
                     .boolean()
                     .optional()
@@ -382,14 +378,21 @@ export function registerTransactionTools(server: McpServer) {
         async ({ input }) => {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const body: any = {
-                transaction: input.transaction,
-            };
+            const body: any = {};
 
-            if (input.debit_as_negative !== undefined)
-                body.debit_as_negative = input.debit_as_negative;
-            if (input.skip_balance_update !== undefined)
-                body.skip_balance_update = input.skip_balance_update;
+            if (input.date !== undefined) body.date = input.date;
+            if (input.payee !== undefined) body.payee = input.payee;
+            if (input.amount !== undefined) body.amount = input.amount;
+            if (input.currency !== undefined) body.currency = input.currency;
+            if (input.category_id !== undefined) body.category_id = input.category_id;
+            if (input.manual_account_id !== undefined) body.manual_account_id = input.manual_account_id;
+            if (input.recurring_id !== undefined) body.recurring_id = input.recurring_id;
+            if (input.notes !== undefined) body.notes = input.notes;
+            if (input.status !== undefined) body.status = input.status;
+            if (input.external_id !== undefined) body.external_id = input.external_id;
+            if (input.tags !== undefined) body.tags = input.tags;
+            if (input.debit_as_negative !== undefined) body.debit_as_negative = input.debit_as_negative;
+            if (input.skip_balance_update !== undefined) body.skip_balance_update = input.skip_balance_update;
 
             const response = await fetch(
                 `${baseUrl}/transactions/${input.transaction_id}`,
@@ -428,33 +431,72 @@ export function registerTransactionTools(server: McpServer) {
     );
 
     server.tool(
-        "unsplit_transactions",
-        "Remove one or more transactions from a split",
+        "delete_transaction",
+        "Delete a single transaction",
         {
             input: z.object({
-                parent_ids: z
-                    .array(z.number())
-                    .describe("Array of parent transaction IDs to unsplit"),
-                remove_parents: z
-                    .boolean()
-                    .optional()
-                    .describe("If true, delete parent transactions"),
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction to delete"),
             }),
         },
         async ({ input }) => {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(`${baseUrl}/transactions/unsplit`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    parent_ids: input.parent_ids,
-                    remove_parents: input.remove_parents,
-                }),
-            });
+            const response = await fetch(
+                `${baseUrl}/transactions/${input.transaction_id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to delete transaction: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Transaction deleted successfully",
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "unsplit_transaction",
+        "Remove a transaction from a split (unsplit operation)",
+        {
+            input: z.object({
+                transaction_id: z
+                    .number()
+                    .describe("ID of the split parent transaction to unsplit"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(
+                `${baseUrl}/transactions/split/${input.transaction_id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                }
+            );
 
             if (!response.ok) {
                 return {
@@ -473,7 +515,52 @@ export function registerTransactionTools(server: McpServer) {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(result),
+                        text: "Transaction unsplit successfully",
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "ungroup_transaction",
+        "Remove a transaction group (ungroup operation)",
+        {
+            input: z.object({
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction group to ungroup"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(
+                `${baseUrl}/transactions/group/${input.transaction_id}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to ungroup transaction: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: "Transaction ungrouped successfully",
                     },
                 ],
             };
@@ -531,6 +618,9 @@ export function registerTransactionTools(server: McpServer) {
         "Create a transaction group",
         {
             input: z.object({
+                ids: z
+                    .array(z.number())
+                    .describe("Array of transaction IDs to group"),
                 date: z.string().describe("Date in YYYY-MM-DD format"),
                 payee: z.string().describe("Payee name for the group"),
                 category_id: z
@@ -538,13 +628,14 @@ export function registerTransactionTools(server: McpServer) {
                     .optional()
                     .describe("Category ID for the group"),
                 notes: z.string().optional().describe("Notes for the group"),
-                tags: z
+                status: z
+                    .enum(["reviewed", "unreviewed"])
+                    .optional()
+                    .describe("Transaction status"),
+                tag_ids: z
                     .array(z.number())
                     .optional()
                     .describe("Array of tag IDs for the group"),
-                transaction_ids: z
-                    .array(z.number())
-                    .describe("Array of transaction IDs to group"),
             }),
         },
         async ({ input }) => {
@@ -583,48 +674,4 @@ export function registerTransactionTools(server: McpServer) {
         }
     );
 
-    server.tool(
-        "delete_transaction_group",
-        "Delete a transaction group or a single transaction.",
-        {
-            input: z.object({
-                transaction_id: z
-                    .number()
-                    .describe("ID of the transaction group to delete"),
-            }),
-        },
-        async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-            const response = await fetch(
-                `${baseUrl}/transactions/group/${input.transaction_id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: `Failed to delete transaction group: ${response.statusText}`,
-                        },
-                    ],
-                };
-            }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "Transaction group deleted successfully",
-                    },
-                ],
-            };
-        }
-    );
 }

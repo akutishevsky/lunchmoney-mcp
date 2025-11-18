@@ -205,7 +205,7 @@ export function registerCategoryTools(server: McpServer) {
 
     server.tool(
         "create_category_group",
-        "Create a single category group.",
+        "Create a single category group. In API v2, use the same endpoint as creating a category with is_group=true.",
         {
             input: z.object({
                 name: z
@@ -241,17 +241,11 @@ export function registerCategoryTools(server: McpServer) {
                     .describe(
                         "Whether or not transactions in this category should be excluded from calculated totals."
                     ),
-                category_ids: z
+                children: z
                     .array(z.number())
                     .optional()
                     .describe(
-                        "Array of category_id to include in the category group."
-                    ),
-                new_categories: z
-                    .array(z.string())
-                    .optional()
-                    .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group."
+                        "Array of category IDs to include in this group."
                     ),
             }),
         },
@@ -262,8 +256,7 @@ export function registerCategoryTools(server: McpServer) {
                 is_income,
                 exclude_from_budget,
                 exclude_from_totals,
-                category_ids,
-                new_categories,
+                children,
             } = input;
             const { baseUrl, lunchmoneyApiToken } = getConfig();
             const requestBody: any = {
@@ -272,19 +265,14 @@ export function registerCategoryTools(server: McpServer) {
                 is_income,
                 exclude_from_budget,
                 exclude_from_totals,
-                category_ids,
-                new_categories,
+                is_group: true,
             };
 
-            if (category_ids && category_ids.length > 0) {
-                requestBody.category_ids = category_ids;
+            if (children && children.length > 0) {
+                requestBody.children = children;
             }
 
-            if (new_categories && new_categories.length > 0) {
-                requestBody.new_categories = new_categories;
-            }
-
-            const response = await fetch(`${baseUrl}/categories/group`, {
+            const response = await fetch(`${baseUrl}/categories`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${lunchmoneyApiToken}`,
@@ -429,41 +417,28 @@ export function registerCategoryTools(server: McpServer) {
 
     server.tool(
         "add_to_category_group",
-        "Add categories (either existing or new) to a single category group.",
+        "Add categories to a single category group using PUT with children array in API v2.",
         {
             input: z.object({
                 group_id: z.number().describe("Id of the parent group to add to."),
-                category_ids: z
+                children: z
                     .array(z.number())
-                    .optional()
                     .describe(
-                        "Array of category_id to include in the category group."
-                    ),
-                new_categories: z
-                    .array(z.string())
-                    .optional()
-                    .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group."
+                        "Array of category IDs to include in the category group."
                     ),
             }),
         },
         async ({ input }) => {
-            const { group_id, category_ids, new_categories } = input;
+            const { group_id, children } = input;
             const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const requestBody: any = {};
-
-            if (category_ids && category_ids.length > 0) {
-                requestBody.category_ids = category_ids;
-            }
-
-            if (new_categories && new_categories.length > 0) {
-                requestBody.new_categories = new_categories;
-            }
+            const requestBody: any = {
+                children,
+            };
 
             const response = await fetch(
-                `${baseUrl}/categories/group/${group_id}/add`,
+                `${baseUrl}/categories/${group_id}`,
                 {
-                    method: "POST",
+                    method: "PUT",
                     headers: {
                         Authorization: `Bearer ${lunchmoneyApiToken}`,
                         "Content-Type": "application/json",
@@ -542,7 +517,7 @@ export function registerCategoryTools(server: McpServer) {
 
     server.tool(
         "force_delete_category",
-        "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!",
+        "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. In API v2, use ?force=true query parameter. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!",
         {
             input: z.object({
                 category_id: z
@@ -558,7 +533,7 @@ export function registerCategoryTools(server: McpServer) {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
 
             const response = await fetch(
-                `${baseUrl}/categories/${category_id}/force`,
+                `${baseUrl}/categories/${category_id}?force=true`,
                 {
                     method: "DELETE",
                     headers: {

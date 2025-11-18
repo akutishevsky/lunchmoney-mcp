@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { getConfig } from "../config.js";
 import { PlaidAccount } from "../types.js";
 
@@ -9,7 +10,7 @@ export function registerPlaidAccountTools(server: McpServer) {
         {},
         async () => {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
+
             const response = await fetch(`${baseUrl}/plaid_accounts`, {
                 headers: {
                     Authorization: `Bearer ${lunchmoneyApiToken}`,
@@ -29,12 +30,58 @@ export function registerPlaidAccountTools(server: McpServer) {
 
             const data = await response.json();
             const plaidAccounts: PlaidAccount[] = data.plaid_accounts;
-            
+
             return {
                 content: [
                     {
                         type: "text",
                         text: JSON.stringify(plaidAccounts),
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "get_plaid_account",
+        "Get a single Plaid account by ID",
+        {
+            input: z.object({
+                account_id: z
+                    .number()
+                    .describe("ID of the Plaid account to retrieve"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(
+                `${baseUrl}/plaid_accounts/${input.account_id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to get Plaid account: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            const account: PlaidAccount = await response.json();
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(account),
                     },
                 ],
             };
