@@ -134,7 +134,7 @@ export function registerManualAccountTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("Date the account was closed in YYYY-MM-DD format"),
-                exclude_transactions: z
+                exclude_from_transactions: z
                     .boolean()
                     .optional()
                     .describe("Whether to exclude this account from transaction options"),
@@ -163,7 +163,7 @@ export function registerManualAccountTools(server: McpServer) {
             if (input.currency) body.currency = input.currency;
             if (input.institution_name) body.institution_name = input.institution_name;
             if (input.closed_on) body.closed_on = input.closed_on;
-            if (input.exclude_transactions !== undefined) body.exclude_transactions = input.exclude_transactions;
+            if (input.exclude_from_transactions !== undefined) body.exclude_from_transactions = input.exclude_from_transactions;
             if (input.external_id) body.external_id = input.external_id;
             if (input.custom_metadata) body.custom_metadata = input.custom_metadata;
 
@@ -255,7 +255,7 @@ export function registerManualAccountTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("Date the account was closed in YYYY-MM-DD format"),
-                exclude_transactions: z
+                exclude_from_transactions: z
                     .boolean()
                     .optional()
                     .describe("Whether to exclude this account from transaction options"),
@@ -283,7 +283,7 @@ export function registerManualAccountTools(server: McpServer) {
             if (input.currency) body.currency = input.currency;
             if (input.institution_name) body.institution_name = input.institution_name;
             if (input.closed_on) body.closed_on = input.closed_on;
-            if (input.exclude_transactions !== undefined) body.exclude_transactions = input.exclude_transactions;
+            if (input.exclude_from_transactions !== undefined) body.exclude_from_transactions = input.exclude_from_transactions;
             if (input.external_id) body.external_id = input.external_id;
             if (input.custom_metadata) body.custom_metadata = input.custom_metadata;
 

@@ -113,11 +113,17 @@ export function registerPlaidAccountTools(server: McpServer) {
                 };
             }
 
+            const data = await response.json();
+            const plaidAccounts: PlaidAccount[] = data.plaid_accounts;
+
             return {
                 content: [
                     {
                         type: "text",
-                        text: "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
+                        text: JSON.stringify({
+                            message: "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
+                            plaid_accounts: plaidAccounts,
+                        }),
                     },
                 ],
             };

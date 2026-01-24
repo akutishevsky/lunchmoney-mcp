@@ -31,7 +31,8 @@ export interface Category {
     group_id: number | null;
     order: number | null;
     children?: CategoryChild[] | null;
-    group_category_name?: string | null;
+    group_name: string | null;
+    collapsed: boolean;
 }
 
 export interface Tag {
@@ -62,10 +63,10 @@ export interface Transaction {
     notes: string | null;
     original_name: string | null;
     recurring_id: number | null;
-    parent_id: number | null;
-    is_parent: boolean;
-    group_id: number | null;
-    is_group: boolean;
+    split_parent_id: number | null;
+    is_split_parent: boolean;
+    group_parent_id: number | null;
+    is_group_parent: boolean;
     manual_account_id: number | null;
     plaid_account_id: number | null;
     type: string | null;
@@ -90,35 +91,35 @@ export interface SummarizedTransaction {
 
 export interface RecurringItem {
     id: number;
-    start_date: string | null;
-    end_date: string | null;
-    payee: string;
-    currency: string;
-    created_by: number;
-    created_at: string;
-    updated_at: string;
+    description: string | null;
+    source: string;
+    status: string;
     transaction_criteria: {
-        billing_date: string;
+        start_date: string | null;
+        end_date: string | null;
+        anchor_date: string;
         original_name: string | null;
-        description: string | null;
+        payee: string;
+        amount: number;
+        currency: string;
+        granularity: string;
         plaid_account_id: number | null;
         manual_account_id: number | null;
     };
     overrides: {
-        source: string;
+        payee: string | null;
         notes: string | null;
-        amount: number;
         category_id: number | null;
-        is_income: boolean;
-        exclude_from_totals: boolean;
     };
     matches: {
-        granularity: string;
-        quantity: number | null;
-        occurrences: any;
-        transactions_within_range: SummarizedTransaction[] | null;
-        missing_dates_within_range: string[] | null;
+        request_start_date: string;
+        expected_occurrence_dates: any;
+        found_transactions: SummarizedTransaction[] | null;
+        missing_transaction_dates: string[] | null;
     };
+    created_by: number;
+    created_at: string;
+    updated_at: string;
     to_base: number;
 }
 
@@ -168,7 +169,7 @@ export interface ManualAccount {
     closed_on: string | null;
     currency: string;
     institution_name: string | null;
-    exclude_transactions: boolean;
+    exclude_from_transactions: boolean;
     created_at: string;
     updated_at: string;
     external_id: string | null;

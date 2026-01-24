@@ -6,37 +6,33 @@ import { RecurringItem } from "../types.js";
 export function registerRecurringItemsTools(server: McpServer) {
     server.tool(
         "get_recurring_items",
-        "Retrieve a list of recurring items to expect for a specified month",
+        "Retrieve a list of recurring items to expect for a specified date range. Both start_date and end_date are required together.",
         {
             input: z.object({
                 start_date: z
                     .string()
-                    .optional()
-                    .describe("Start date in YYYY-MM-DD format. Defaults to first day of current month"),
+                    .describe("Start date in YYYY-MM-DD format (required with end_date)"),
                 end_date: z
                     .string()
-                    .optional()
-                    .describe("End date in YYYY-MM-DD format"),
-                debit_as_negative: z
+                    .describe("End date in YYYY-MM-DD format (required with start_date)"),
+                include_suggested: z
                     .boolean()
                     .optional()
-                    .describe("Pass true to return debit amounts as negative"),
+                    .describe("Include suggested recurring items"),
             }),
         },
         async ({ input }) => {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
+
             const params = new URLSearchParams();
-            if (input.start_date) params.append("start_date", input.start_date);
-            if (input.end_date) params.append("end_date", input.end_date);
-            if (input.debit_as_negative !== undefined) {
-                params.append("debit_as_negative", input.debit_as_negative.toString());
+            params.append("start_date", input.start_date);
+            params.append("end_date", input.end_date);
+            if (input.include_suggested !== undefined) {
+                params.append("include_suggested", input.include_suggested.toString());
             }
-            
-            const url = params.toString() 
-                ? `${baseUrl}/recurring_items?${params}`
-                : `${baseUrl}/recurring_items`;
-                
+
+            const url = `${baseUrl}/recurring_items?${params}`;
+
             const response = await fetch(url, {
                 headers: {
                     Authorization: `Bearer ${lunchmoneyApiToken}`,
@@ -54,13 +50,60 @@ export function registerRecurringItemsTools(server: McpServer) {
                 };
             }
 
-            const recurringItems: RecurringItem[] = await response.json();
-            
+            const data = await response.json();
+            const recurringItems: RecurringItem[] = data.recurring_items;
+
             return {
                 content: [
                     {
                         type: "text",
                         text: JSON.stringify(recurringItems),
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "get_single_recurring_item",
+        "Get details of a specific recurring item",
+        {
+            input: z.object({
+                recurring_id: z
+                    .number()
+                    .describe("ID of the recurring item to retrieve"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(
+                `${baseUrl}/recurring_items/${input.recurring_id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to get recurring item: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            const recurringItem: RecurringItem = await response.json();
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(recurringItem),
                     },
                 ],
             };

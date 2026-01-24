@@ -45,10 +45,34 @@ export function registerTransactionTools(server: McpServer) {
                     .describe(
                         "Maximum number of transactions to return (max 500)"
                     ),
-                debit_as_negative: z
+                include_pending: z
                     .boolean()
                     .optional()
-                    .describe("Pass true to return debit amounts as negative"),
+                    .describe("Include pending transactions"),
+                include_metadata: z
+                    .boolean()
+                    .optional()
+                    .describe("Include transaction metadata"),
+                include_files: z
+                    .boolean()
+                    .optional()
+                    .describe("Include attached files"),
+                include_children: z
+                    .boolean()
+                    .optional()
+                    .describe("Include child transactions (for splits/groups)"),
+                include_split_parents: z
+                    .boolean()
+                    .optional()
+                    .describe("Include split parent transactions"),
+                created_since: z
+                    .string()
+                    .optional()
+                    .describe("Filter transactions created since this date (ISO date format)"),
+                updated_since: z
+                    .string()
+                    .optional()
+                    .describe("Filter transactions updated since this datetime (ISO datetime format)"),
             }),
         },
         async ({ input }) => {
@@ -80,11 +104,20 @@ export function registerTransactionTools(server: McpServer) {
                 params.append("offset", input.offset.toString());
             if (input.limit !== undefined)
                 params.append("limit", input.limit.toString());
-            if (input.debit_as_negative !== undefined)
-                params.append(
-                    "debit_as_negative",
-                    input.debit_as_negative.toString()
-                );
+            if (input.include_pending !== undefined)
+                params.append("include_pending", input.include_pending.toString());
+            if (input.include_metadata !== undefined)
+                params.append("include_metadata", input.include_metadata.toString());
+            if (input.include_files !== undefined)
+                params.append("include_files", input.include_files.toString());
+            if (input.include_children !== undefined)
+                params.append("include_children", input.include_children.toString());
+            if (input.include_split_parents !== undefined)
+                params.append("include_split_parents", input.include_split_parents.toString());
+            if (input.created_since !== undefined)
+                params.append("created_since", input.created_since);
+            if (input.updated_since !== undefined)
+                params.append("updated_since", input.updated_since);
 
             const response = await fetch(`${baseUrl}/transactions?${params}`, {
                 headers: {
@@ -128,26 +161,12 @@ export function registerTransactionTools(server: McpServer) {
                 transaction_id: z
                     .number()
                     .describe("ID of the transaction to retrieve"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe("Pass true to return debit amounts as negative"),
             }),
         },
         async ({ input }) => {
             const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const params = new URLSearchParams();
-            if (input.debit_as_negative !== undefined) {
-                params.append(
-                    "debit_as_negative",
-                    input.debit_as_negative.toString()
-                );
-            }
-
-            const url = params.toString()
-                ? `${baseUrl}/transactions/${input.transaction_id}?${params}`
-                : `${baseUrl}/transactions/${input.transaction_id}`;
+            const url = `${baseUrl}/transactions/${input.transaction_id}`;
 
             const response = await fetch(url, {
                 headers: {
@@ -226,7 +245,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .string()
                                 .optional()
                                 .describe("External ID (max 75 characters)"),
-                            tags: z
+                            tag_ids: z
                                 .array(z.number())
                                 .optional()
                                 .describe("Array of tag IDs"),
@@ -249,12 +268,6 @@ export function registerTransactionTools(server: McpServer) {
                     .describe(
                         "Check if transactions are part of recurring expenses"
                     ),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Pass true if debits are provided as negative amounts"
-                    ),
                 skip_balance_update: z
                     .boolean()
                     .optional()
@@ -274,8 +287,6 @@ export function registerTransactionTools(server: McpServer) {
                 body.skip_duplicates = input.skip_duplicates;
             if (input.check_for_recurring !== undefined)
                 body.check_for_recurring = input.check_for_recurring;
-            if (input.debit_as_negative !== undefined)
-                body.debit_as_negative = input.debit_as_negative;
             if (input.skip_balance_update !== undefined)
                 body.skip_balance_update = input.skip_balance_update;
 
@@ -359,16 +370,10 @@ export function registerTransactionTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("External ID (max 75 characters)"),
-                tags: z
+                tag_ids: z
                     .array(z.number())
                     .optional()
                     .describe("Array of tag IDs"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Pass true if debits are provided as negative amounts"
-                    ),
                 skip_balance_update: z
                     .boolean()
                     .optional()
@@ -390,8 +395,7 @@ export function registerTransactionTools(server: McpServer) {
             if (input.notes !== undefined) body.notes = input.notes;
             if (input.status !== undefined) body.status = input.status;
             if (input.external_id !== undefined) body.external_id = input.external_id;
-            if (input.tags !== undefined) body.tags = input.tags;
-            if (input.debit_as_negative !== undefined) body.debit_as_negative = input.debit_as_negative;
+            if (input.tag_ids !== undefined) body.tag_ids = input.tag_ids;
             if (input.skip_balance_update !== undefined) body.skip_balance_update = input.skip_balance_update;
 
             const response = await fetch(
@@ -656,6 +660,172 @@ export function registerTransactionTools(server: McpServer) {
                         {
                             type: "text",
                             text: `Failed to create transaction group: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            const result = await response.json();
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(result),
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "split_transaction",
+        "Split a transaction into multiple parts",
+        {
+            input: z.object({
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction to split"),
+                splits: z
+                    .array(
+                        z.object({
+                            payee: z.string().optional().describe("Payee name for this split"),
+                            amount: z.string().describe("Amount for this split"),
+                            category_id: z.number().optional().describe("Category ID for this split"),
+                            notes: z.string().optional().describe("Notes for this split"),
+                        })
+                    )
+                    .describe("Array of split transactions"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(
+                `${baseUrl}/transactions/split/${input.transaction_id}`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ splits: input.splits }),
+                }
+            );
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to split transaction: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            const result = await response.json();
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(result),
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "bulk_delete_transactions",
+        "Delete multiple transactions at once",
+        {
+            input: z.object({
+                ids: z
+                    .array(z.number())
+                    .describe("Array of transaction IDs to delete"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(`${baseUrl}/transactions`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ ids: input.ids }),
+            });
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to delete transactions: ${response.statusText}`,
+                        },
+                    ],
+                };
+            }
+
+            const result = await response.json();
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(result),
+                    },
+                ],
+            };
+        }
+    );
+
+    server.tool(
+        "bulk_update_transactions",
+        "Update multiple transactions at once",
+        {
+            input: z.object({
+                transactions: z
+                    .array(
+                        z.object({
+                            id: z.number().describe("Transaction ID to update"),
+                            date: z.string().optional().describe("Date in YYYY-MM-DD format"),
+                            payee: z.string().optional().describe("Payee name"),
+                            amount: z.string().optional().describe("Amount as string"),
+                            currency: z.string().optional().describe("Three-letter currency code"),
+                            category_id: z.number().optional().describe("Category ID"),
+                            notes: z.string().optional().describe("Transaction notes"),
+                            status: z
+                                .enum(["reviewed", "unreviewed", "pending"])
+                                .optional()
+                                .describe("Transaction status"),
+                            tag_ids: z.array(z.number()).optional().describe("Array of tag IDs"),
+                        })
+                    )
+                    .describe("Array of transactions to update"),
+            }),
+        },
+        async ({ input }) => {
+            const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+            const response = await fetch(`${baseUrl}/transactions`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(input.transactions),
+            });
+
+            if (!response.ok) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: `Failed to update transactions: ${response.statusText}`,
                         },
                     ],
                 };

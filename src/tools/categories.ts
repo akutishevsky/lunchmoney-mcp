@@ -15,12 +15,23 @@ export function registerCategoryTools(server: McpServer) {
                     .describe(
                         "Can either flattened or nested. If flattened, returns a singular array of categories, ordered alphabetically. If nested, returns top-level categories (either category groups or categories not part of a category group) in an array. Subcategories are nested within the category group under the property children."
                     ),
+                is_group: z
+                    .boolean()
+                    .optional()
+                    .describe("Filter by groups only (true) or non-groups only (false)"),
             }),
         },
         async ({ input }) => {
             const format = input.format || "flattened";
             const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const response = await fetch(`${baseUrl}/categories?format=${format}`, {
+
+            const params = new URLSearchParams();
+            params.append("format", format);
+            if (input.is_group !== undefined) {
+                params.append("is_group", input.is_group.toString());
+            }
+
+            const response = await fetch(`${baseUrl}/categories?${params}`, {
                 headers: {
                     Authorization: `Bearer ${lunchmoneyApiToken}`,
                 },
