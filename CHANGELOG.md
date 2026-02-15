@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2026-02-15
+
+### Fixed
+
+- Removed nested `input` wrapper from all 23 parameterized tool schemas, fixing compatibility with clients (e.g. Claude AI) that send arguments flat rather than nested under an `input` key
+
 ## [1.1.0] - 2026-02-15
 
 ### Added
