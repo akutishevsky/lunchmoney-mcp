@@ -1,8 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
+import { api, dataResponse, handleApiError, catchError } from "../api.js";
 import { Asset } from "../types.js";
 
 export function registerAssetTools(server: McpServer) {
@@ -17,31 +15,16 @@ export function registerAssetTools(server: McpServer) {
         },
         async () => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(`${baseUrl}/assets`, {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.get("/assets");
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(response, "Failed to get assets"),
-                    );
+                    return handleApiError(response, "Failed to get assets");
                 }
 
                 const data = await response.json();
                 const assets: Asset[] = data.assets;
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(assets),
-                        },
-                    ],
-                };
+                return dataResponse(assets);
             } catch (error) {
                 return catchError(error, "Failed to get assets");
             }
@@ -123,51 +106,34 @@ export function registerAssetTools(server: McpServer) {
             exclude_transactions,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const body: any = {
+                const body: Record<string, unknown> = {
                     type_name,
                     name,
                     balance: balance.toString(),
                 };
 
-                if (subtype_name) body.subtype_name = subtype_name;
-                if (display_name) body.display_name = display_name;
-                if (balance_as_of) body.balance_as_of = balance_as_of;
-                if (currency) body.currency = currency;
-                if (institution_name) body.institution_name = institution_name;
-                if (closed_on) body.closed_on = closed_on;
+                if (subtype_name !== undefined)
+                    body.subtype_name = subtype_name;
+                if (display_name !== undefined)
+                    body.display_name = display_name;
+                if (balance_as_of !== undefined)
+                    body.balance_as_of = balance_as_of;
+                if (currency !== undefined) body.currency = currency;
+                if (institution_name !== undefined)
+                    body.institution_name = institution_name;
+                if (closed_on !== undefined) body.closed_on = closed_on;
                 if (exclude_transactions !== undefined)
                     body.exclude_transactions = exclude_transactions;
 
-                const response = await fetch(`${baseUrl}/assets`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(body),
-                });
+                const response = await api.post("/assets", body);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to create asset",
-                        ),
-                    );
+                    return handleApiError(response, "Failed to create asset");
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to create asset");
             }
@@ -253,50 +219,33 @@ export function registerAssetTools(server: McpServer) {
             exclude_transactions,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const body: Record<string, unknown> = {};
 
-                const body: any = {};
-
-                if (type_name) body.type_name = type_name;
-                if (subtype_name) body.subtype_name = subtype_name;
-                if (name) body.name = name;
-                if (display_name) body.display_name = display_name;
+                if (type_name !== undefined) body.type_name = type_name;
+                if (subtype_name !== undefined)
+                    body.subtype_name = subtype_name;
+                if (name !== undefined) body.name = name;
+                if (display_name !== undefined)
+                    body.display_name = display_name;
                 if (balance !== undefined) body.balance = balance.toString();
-                if (balance_as_of) body.balance_as_of = balance_as_of;
-                if (currency) body.currency = currency;
-                if (institution_name) body.institution_name = institution_name;
-                if (closed_on) body.closed_on = closed_on;
+                if (balance_as_of !== undefined)
+                    body.balance_as_of = balance_as_of;
+                if (currency !== undefined) body.currency = currency;
+                if (institution_name !== undefined)
+                    body.institution_name = institution_name;
+                if (closed_on !== undefined) body.closed_on = closed_on;
                 if (exclude_transactions !== undefined)
                     body.exclude_transactions = exclude_transactions;
 
-                const response = await fetch(`${baseUrl}/assets/${asset_id}`, {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(body),
-                });
+                const response = await api.put(`/assets/${asset_id}`, body);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to update asset",
-                        ),
-                    );
+                    return handleApiError(response, "Failed to update asset");
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to update asset");
             }

@@ -1,8 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
+import {
+    api,
+    dataResponse,
+    successResponse,
+    handleApiError,
+    catchError,
+} from "../api.js";
 import { Budget } from "../types.js";
 
 export function registerBudgetTools(server: McpServer) {
@@ -35,8 +39,6 @@ export function registerBudgetTools(server: McpServer) {
         },
         async ({ start_date, end_date, currency }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
                 const params = new URLSearchParams({
                     start_date,
                     end_date,
@@ -46,31 +48,18 @@ export function registerBudgetTools(server: McpServer) {
                     params.append("currency", currency);
                 }
 
-                const response = await fetch(`${baseUrl}/budgets?${params}`, {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.get(`/budgets?${params}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get budget summary",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get budget summary",
                     );
                 }
 
                 const budgets: Budget[] = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(budgets),
-                        },
-                    ],
-                };
+                return dataResponse(budgets);
             } catch (error) {
                 return catchError(error, "Failed to get budget summary");
             }
@@ -101,9 +90,7 @@ export function registerBudgetTools(server: McpServer) {
         },
         async ({ start_date, category_id, amount, currency }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const body: any = {
+                const body: Record<string, unknown> = {
                     start_date,
                     category_id,
                     amount,
@@ -113,34 +100,15 @@ export function registerBudgetTools(server: McpServer) {
                     body.currency = currency;
                 }
 
-                const response = await fetch(`${baseUrl}/budgets`, {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(body),
-                });
+                const response = await api.put("/budgets", body);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to upsert budget",
-                        ),
-                    );
+                    return handleApiError(response, "Failed to upsert budget");
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to upsert budget");
             }
@@ -165,37 +133,18 @@ export function registerBudgetTools(server: McpServer) {
         },
         async ({ start_date, category_id }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
                 const params = new URLSearchParams({
                     start_date,
                     category_id: category_id.toString(),
                 });
 
-                const response = await fetch(`${baseUrl}/budgets?${params}`, {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.delete(`/budgets?${params}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to remove budget",
-                        ),
-                    );
+                    return handleApiError(response, "Failed to remove budget");
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Budget removed successfully",
-                        },
-                    ],
-                };
+                return successResponse("Budget removed successfully");
             } catch (error) {
                 return catchError(error, "Failed to remove budget");
             }
