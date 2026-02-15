@@ -18,16 +18,19 @@ export function registerBudgetTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe(
                         "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
                     ),
                 end_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe(
                         "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
                     ),
                 currency: z
                     .string()
+                    .length(3)
                     .optional()
                     .describe(
                         "Currency for budget (defaults to primary currency)",
@@ -74,11 +77,13 @@ export function registerBudgetTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Budget month start date in YYYY-MM-DD format"),
                 category_id: z.number().describe("Category ID for the budget"),
                 amount: z.number().describe("Budget amount"),
                 currency: z
                     .string()
+                    .length(3)
                     .optional()
                     .describe(
                         "Currency for budget (defaults to primary currency)",
@@ -122,6 +127,7 @@ export function registerBudgetTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Budget month start date in YYYY-MM-DD format"),
                 category_id: z
                     .number()

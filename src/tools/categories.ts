@@ -86,11 +86,14 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 name: z
                     .string()
+                    .min(1)
+                    .max(40)
                     .describe(
                         "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
                     .describe(
                         "Description of category. Must be less than 140 characters.",
@@ -175,11 +178,14 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 name: z
                     .string()
+                    .min(1)
+                    .max(40)
                     .describe(
                         "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
                     .describe(
                         "Description of category. Must be less than 140 characters.",
@@ -275,12 +281,15 @@ export function registerCategoryTools(server: McpServer) {
                     ),
                 name: z
                     .string()
+                    .min(1)
+                    .max(40)
                     .optional()
                     .describe(
                         "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
                     .describe(
                         "Description of category. Must be less than 140 characters.",

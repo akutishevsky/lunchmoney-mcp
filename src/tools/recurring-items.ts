@@ -12,12 +12,14 @@ export function registerRecurringItemsTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .optional()
                     .describe(
                         "Start date in YYYY-MM-DD format. Defaults to first day of current month",
                     ),
                 end_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .optional()
                     .describe("End date in YYYY-MM-DD format"),
                 debit_as_negative: z

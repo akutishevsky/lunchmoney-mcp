@@ -70,6 +70,7 @@ export function registerAssetTools(server: McpServer) {
                     ),
                 currency: z
                     .string()
+                    .length(3)
                     .optional()
                     .describe(
                         "Three-letter currency code (defaults to primary currency)",
@@ -184,6 +185,7 @@ export function registerAssetTools(server: McpServer) {
                     ),
                 currency: z
                     .string()
+                    .length(3)
                     .optional()
                     .describe("Three-letter currency code"),
                 institution_name: z

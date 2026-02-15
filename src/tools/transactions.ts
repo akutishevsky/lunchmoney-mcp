@@ -18,8 +18,12 @@ export function registerTransactionTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Start date in YYYY-MM-DD format"),
-                end_date: z.string().describe("End date in YYYY-MM-DD format"),
+                end_date: z
+                    .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                    .describe("End date in YYYY-MM-DD format"),
                 tag_id: z.number().optional().describe("Filter by tag ID"),
                 recurring_id: z
                     .number()
@@ -189,6 +193,10 @@ export function registerTransactionTools(server: McpServer) {
                         z.object({
                             date: z
                                 .string()
+                                .regex(
+                                    /^\d{4}-\d{2}-\d{2}$/,
+                                    "Must be YYYY-MM-DD format",
+                                )
                                 .describe("Date in YYYY-MM-DD format"),
                             payee: z.string().describe("Payee name"),
                             amount: z
@@ -198,6 +206,7 @@ export function registerTransactionTools(server: McpServer) {
                                 ),
                             currency: z
                                 .string()
+                                .length(3)
                                 .optional()
                                 .describe(
                                     "Three-letter lowercase currency code",
@@ -224,6 +233,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .describe("Transaction status"),
                             external_id: z
                                 .string()
+                                .max(75)
                                 .optional()
                                 .describe("External ID (max 75 characters)"),
                             tags: z
@@ -323,6 +333,10 @@ export function registerTransactionTools(server: McpServer) {
                     .object({
                         date: z
                             .string()
+                            .regex(
+                                /^\d{4}-\d{2}-\d{2}$/,
+                                "Must be YYYY-MM-DD format",
+                            )
                             .optional()
                             .describe("Date in YYYY-MM-DD format"),
                         payee: z.string().optional().describe("Payee name"),
@@ -334,6 +348,7 @@ export function registerTransactionTools(server: McpServer) {
                             ),
                         currency: z
                             .string()
+                            .length(3)
                             .optional()
                             .describe("Three-letter lowercase currency code"),
                         category_id: z
@@ -358,6 +373,7 @@ export function registerTransactionTools(server: McpServer) {
                             .describe("Transaction status"),
                         external_id: z
                             .string()
+                            .max(75)
                             .optional()
                             .describe("External ID (max 75 characters)"),
                         tags: z
@@ -504,7 +520,10 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Create a transaction group",
             inputSchema: {
-                date: z.string().describe("Date in YYYY-MM-DD format"),
+                date: z
+                    .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                    .describe("Date in YYYY-MM-DD format"),
                 payee: z.string().describe("Payee name for the group"),
                 category_id: z
                     .number()
