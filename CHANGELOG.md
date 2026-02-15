@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-02-15
+
+### Added
+
+- ESLint configuration with `@typescript-eslint` for code quality and consistency
+- Graceful shutdown handlers via SIGINT/SIGTERM signals
+- Input validation for dates, lengths, and currency codes in transaction tools
+- Shared API client with configurable timeouts and automatic retry logic
+
+### Changed
+
+- Server now reads version from `package.json` dynamically instead of hardcoding
+- Enhanced error logging with `catchError` on server shutdown
+- Replaced `any` types with `Record<string, unknown>` for better type safety
+- Improved category update handling: made name optional, fixed defaults, use numeric IDs
+- Made `category_id` required in `delete_category` and `force_delete_category` tools
+
 ## [1.3.0] - 2026-02-15
 
 ### Added
