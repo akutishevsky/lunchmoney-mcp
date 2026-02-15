@@ -31,17 +31,22 @@ A husky pre-commit hook runs `npm run format` automatically before every commit.
 
 ## Tool Implementation Pattern
 
-Every tool follows this structure:
+Every tool uses `server.registerTool()` with a config object containing `description`, optional `inputSchema`, and `annotations`:
 
 ```typescript
 import { formatData } from "../format.js";
 
-server.tool(
+server.registerTool(
     "snake_case_name",
-    "Description for AI",
     {
-        /* Zod fields with .describe() — no z.object() wrapper */
-        field: z.string().describe("Field description"),
+        description: "Description for AI",
+        inputSchema: {
+            /* Zod fields with .describe() — no z.object() wrapper */
+            field: z.string().describe("Field description"),
+        },
+        annotations: {
+            readOnlyHint: true, // see annotation guide below
+        },
     },
     async ({ field }) => {
         const { baseUrl, lunchmoneyApiToken } = getConfig();
@@ -50,11 +55,9 @@ server.tool(
             headers: { Authorization: `Bearer ${lunchmoneyApiToken}` },
         });
         if (!response.ok) {
-            return {
-                content: [
-                    { type: "text", text: `Failed: ${response.statusText}` },
-                ],
-            };
+            return errorResponse(
+                await getErrorMessage(response, "Failed to do something"),
+            );
         }
         const data = await response.json();
         return { content: [{ type: "text", text: formatData(data) }] };
@@ -66,8 +69,21 @@ Key conventions:
 
 - Tool names are `snake_case`; Zod `.describe()` is required on all parameters for AI discoverability
 - All responses use `formatData()` (TOON encoding) — never raw JSON or markdown
+- Error responses use `errorResponse()` and `getErrorMessage()` from `src/errors.ts`
 - GET requests with optional filters use `URLSearchParams`, only appending defined values
-- Tools with no parameters pass `{}` as the input schema
+- Tools with no parameters omit `inputSchema`
+
+### Tool Annotations
+
+Every tool must include an `annotations` object with exactly one of these hints:
+
+| Annotation              | When to use                                   | Examples                                   |
+| ----------------------- | --------------------------------------------- | ------------------------------------------ |
+| `readOnlyHint: true`    | GET requests that only read data              | `get_transactions`, `get_user`             |
+| `destructiveHint: true` | DELETE requests or irreversible operations    | `delete_category`, `force_delete_category` |
+| `idempotentHint: true`  | PUT/upsert requests (same args → same result) | `update_transaction`, `upsert_budget`      |
+| `idempotentHint: false` | POST requests that create new resources       | `create_transactions`, `create_asset`      |
+| `openWorldHint: true`   | Triggers external systems beyond LunchMoney   | `trigger_plaid_fetch`                      |
 
 ## Adding a New Tool
 
@@ -75,6 +91,7 @@ Key conventions:
 2. If new file: export `register[Domain]Tools(server)` and call it from `src/index.ts`
 3. Add any new response types to `src/types.ts`
 4. Add the tool entry to `manifest.json` (for DXT packaging)
+5. Include the appropriate `annotations` (see table above)
 
 ## Workflow Preferences
 

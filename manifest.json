@@ -140,6 +140,7 @@
             "description": "Update a manually-managed cryptocurrency asset balance"
         }
     ],
+    "prompts_generated": true,
     "user_config": {
         "LUNCHMONEY_API_TOKEN": {
             "type": "string",

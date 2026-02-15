@@ -6,24 +6,30 @@ import { formatData } from "../format.js";
 import { RecurringItem } from "../types.js";
 
 export function registerRecurringItemsTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_recurring_items",
-        "Retrieve a list of recurring items to expect for a specified month",
         {
-            start_date: z
-                .string()
-                .optional()
-                .describe(
-                    "Start date in YYYY-MM-DD format. Defaults to first day of current month",
-                ),
-            end_date: z
-                .string()
-                .optional()
-                .describe("End date in YYYY-MM-DD format"),
-            debit_as_negative: z
-                .boolean()
-                .optional()
-                .describe("Pass true to return debit amounts as negative"),
+            description:
+                "Retrieve a list of recurring items to expect for a specified month",
+            inputSchema: {
+                start_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Start date in YYYY-MM-DD format. Defaults to first day of current month",
+                    ),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe("End date in YYYY-MM-DD format"),
+                debit_as_negative: z
+                    .boolean()
+                    .optional()
+                    .describe("Pass true to return debit amounts as negative"),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
         },
         async ({ start_date, end_date, debit_as_negative }) => {
             try {

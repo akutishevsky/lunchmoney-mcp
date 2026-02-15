@@ -6,46 +6,56 @@ import { formatData } from "../format.js";
 import { Transaction } from "../types.js";
 
 export function registerTransactionTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_transactions",
-        "Retrieve transactions within a date range with optional filters",
         {
-            start_date: z.string().describe("Start date in YYYY-MM-DD format"),
-            end_date: z.string().describe("End date in YYYY-MM-DD format"),
-            tag_id: z.number().optional().describe("Filter by tag ID"),
-            recurring_id: z
-                .number()
-                .optional()
-                .describe("Filter by recurring expense ID"),
-            plaid_account_id: z
-                .number()
-                .optional()
-                .describe("Filter by Plaid account ID"),
-            category_id: z
-                .number()
-                .optional()
-                .describe("Filter by category ID"),
-            asset_id: z.number().optional().describe("Filter by asset ID"),
-            is_group: z
-                .boolean()
-                .optional()
-                .describe("Filter by transaction groups"),
-            status: z
-                .string()
-                .optional()
-                .describe("Filter by status: cleared, uncleared, pending"),
-            offset: z
-                .number()
-                .optional()
-                .describe("Number of transactions to skip"),
-            limit: z
-                .number()
-                .optional()
-                .describe("Maximum number of transactions to return (max 500)"),
-            debit_as_negative: z
-                .boolean()
-                .optional()
-                .describe("Pass true to return debit amounts as negative"),
+            description:
+                "Retrieve transactions within a date range with optional filters",
+            inputSchema: {
+                start_date: z
+                    .string()
+                    .describe("Start date in YYYY-MM-DD format"),
+                end_date: z.string().describe("End date in YYYY-MM-DD format"),
+                tag_id: z.number().optional().describe("Filter by tag ID"),
+                recurring_id: z
+                    .number()
+                    .optional()
+                    .describe("Filter by recurring expense ID"),
+                plaid_account_id: z
+                    .number()
+                    .optional()
+                    .describe("Filter by Plaid account ID"),
+                category_id: z
+                    .number()
+                    .optional()
+                    .describe("Filter by category ID"),
+                asset_id: z.number().optional().describe("Filter by asset ID"),
+                is_group: z
+                    .boolean()
+                    .optional()
+                    .describe("Filter by transaction groups"),
+                status: z
+                    .string()
+                    .optional()
+                    .describe("Filter by status: cleared, uncleared, pending"),
+                offset: z
+                    .number()
+                    .optional()
+                    .describe("Number of transactions to skip"),
+                limit: z
+                    .number()
+                    .optional()
+                    .describe(
+                        "Maximum number of transactions to return (max 500)",
+                    ),
+                debit_as_negative: z
+                    .boolean()
+                    .optional()
+                    .describe("Pass true to return debit amounts as negative"),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
         },
         async ({
             start_date,
@@ -133,17 +143,22 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "get_single_transaction",
-        "Get details of a specific transaction",
         {
-            transaction_id: z
-                .number()
-                .describe("ID of the transaction to retrieve"),
-            debit_as_negative: z
-                .boolean()
-                .optional()
-                .describe("Pass true to return debit amounts as negative"),
+            description: "Get details of a specific transaction",
+            inputSchema: {
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction to retrieve"),
+                debit_as_negative: z
+                    .boolean()
+                    .optional()
+                    .describe("Pass true to return debit amounts as negative"),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
         },
         async ({ transaction_id, debit_as_negative }) => {
             try {
@@ -192,79 +207,90 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "create_transactions",
-        "Insert one or more transactions",
         {
-            transactions: z
-                .array(
-                    z.object({
-                        date: z.string().describe("Date in YYYY-MM-DD format"),
-                        payee: z.string().describe("Payee name"),
-                        amount: z
-                            .string()
-                            .describe(
-                                "Amount as string with up to 4 decimal places",
-                            ),
-                        currency: z
-                            .string()
-                            .optional()
-                            .describe("Three-letter lowercase currency code"),
-                        category_id: z
-                            .number()
-                            .optional()
-                            .describe("Category ID"),
-                        asset_id: z
-                            .number()
-                            .optional()
-                            .describe("Asset ID for manual accounts"),
-                        recurring_id: z
-                            .number()
-                            .optional()
-                            .describe("Recurring expense ID"),
-                        notes: z
-                            .string()
-                            .optional()
-                            .describe("Transaction notes"),
-                        status: z
-                            .enum(["cleared", "uncleared", "pending"])
-                            .optional()
-                            .describe("Transaction status"),
-                        external_id: z
-                            .string()
-                            .optional()
-                            .describe("External ID (max 75 characters)"),
-                        tags: z
-                            .array(z.number())
-                            .optional()
-                            .describe("Array of tag IDs"),
-                    }),
-                )
-                .describe("Array of transactions to create"),
-            apply_rules: z
-                .boolean()
-                .optional()
-                .describe("Apply account's rules to transactions"),
-            skip_duplicates: z
-                .boolean()
-                .optional()
-                .describe("Skip transactions that are potential duplicates"),
-            check_for_recurring: z
-                .boolean()
-                .optional()
-                .describe(
-                    "Check if transactions are part of recurring expenses",
-                ),
-            debit_as_negative: z
-                .boolean()
-                .optional()
-                .describe(
-                    "Pass true if debits are provided as negative amounts",
-                ),
-            skip_balance_update: z
-                .boolean()
-                .optional()
-                .describe("Skip updating balance for assets/accounts"),
+            description: "Insert one or more transactions",
+            inputSchema: {
+                transactions: z
+                    .array(
+                        z.object({
+                            date: z
+                                .string()
+                                .describe("Date in YYYY-MM-DD format"),
+                            payee: z.string().describe("Payee name"),
+                            amount: z
+                                .string()
+                                .describe(
+                                    "Amount as string with up to 4 decimal places",
+                                ),
+                            currency: z
+                                .string()
+                                .optional()
+                                .describe(
+                                    "Three-letter lowercase currency code",
+                                ),
+                            category_id: z
+                                .number()
+                                .optional()
+                                .describe("Category ID"),
+                            asset_id: z
+                                .number()
+                                .optional()
+                                .describe("Asset ID for manual accounts"),
+                            recurring_id: z
+                                .number()
+                                .optional()
+                                .describe("Recurring expense ID"),
+                            notes: z
+                                .string()
+                                .optional()
+                                .describe("Transaction notes"),
+                            status: z
+                                .enum(["cleared", "uncleared", "pending"])
+                                .optional()
+                                .describe("Transaction status"),
+                            external_id: z
+                                .string()
+                                .optional()
+                                .describe("External ID (max 75 characters)"),
+                            tags: z
+                                .array(z.number())
+                                .optional()
+                                .describe("Array of tag IDs"),
+                        }),
+                    )
+                    .describe("Array of transactions to create"),
+                apply_rules: z
+                    .boolean()
+                    .optional()
+                    .describe("Apply account's rules to transactions"),
+                skip_duplicates: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Skip transactions that are potential duplicates",
+                    ),
+                check_for_recurring: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Check if transactions are part of recurring expenses",
+                    ),
+                debit_as_negative: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Pass true if debits are provided as negative amounts",
+                    ),
+                skip_balance_update: z
+                    .boolean()
+                    .optional()
+                    .describe("Skip updating balance for assets/accounts"),
+            },
+            annotations: {
+                idempotentHint: false,
+            },
         },
         async ({
             transactions,
@@ -325,64 +351,75 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "update_transaction",
-        "Update an existing transaction",
         {
-            transaction_id: z
-                .number()
-                .describe("ID of the transaction to update"),
-            transaction: z
-                .object({
-                    date: z
-                        .string()
-                        .optional()
-                        .describe("Date in YYYY-MM-DD format"),
-                    payee: z.string().optional().describe("Payee name"),
-                    amount: z
-                        .string()
-                        .optional()
-                        .describe(
-                            "Amount as string with up to 4 decimal places",
-                        ),
-                    currency: z
-                        .string()
-                        .optional()
-                        .describe("Three-letter lowercase currency code"),
-                    category_id: z.number().optional().describe("Category ID"),
-                    asset_id: z
-                        .number()
-                        .optional()
-                        .describe("Asset ID for manual accounts"),
-                    recurring_id: z
-                        .number()
-                        .optional()
-                        .describe("Recurring expense ID"),
-                    notes: z.string().optional().describe("Transaction notes"),
-                    status: z
-                        .enum(["cleared", "uncleared", "pending"])
-                        .optional()
-                        .describe("Transaction status"),
-                    external_id: z
-                        .string()
-                        .optional()
-                        .describe("External ID (max 75 characters)"),
-                    tags: z
-                        .array(z.number())
-                        .optional()
-                        .describe("Array of tag IDs"),
-                })
-                .describe("Transaction data to update"),
-            debit_as_negative: z
-                .boolean()
-                .optional()
-                .describe(
-                    "Pass true if debits are provided as negative amounts",
-                ),
-            skip_balance_update: z
-                .boolean()
-                .optional()
-                .describe("Skip updating balance for assets/accounts"),
+            description: "Update an existing transaction",
+            inputSchema: {
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction to update"),
+                transaction: z
+                    .object({
+                        date: z
+                            .string()
+                            .optional()
+                            .describe("Date in YYYY-MM-DD format"),
+                        payee: z.string().optional().describe("Payee name"),
+                        amount: z
+                            .string()
+                            .optional()
+                            .describe(
+                                "Amount as string with up to 4 decimal places",
+                            ),
+                        currency: z
+                            .string()
+                            .optional()
+                            .describe("Three-letter lowercase currency code"),
+                        category_id: z
+                            .number()
+                            .optional()
+                            .describe("Category ID"),
+                        asset_id: z
+                            .number()
+                            .optional()
+                            .describe("Asset ID for manual accounts"),
+                        recurring_id: z
+                            .number()
+                            .optional()
+                            .describe("Recurring expense ID"),
+                        notes: z
+                            .string()
+                            .optional()
+                            .describe("Transaction notes"),
+                        status: z
+                            .enum(["cleared", "uncleared", "pending"])
+                            .optional()
+                            .describe("Transaction status"),
+                        external_id: z
+                            .string()
+                            .optional()
+                            .describe("External ID (max 75 characters)"),
+                        tags: z
+                            .array(z.number())
+                            .optional()
+                            .describe("Array of tag IDs"),
+                    })
+                    .describe("Transaction data to update"),
+                debit_as_negative: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Pass true if debits are provided as negative amounts",
+                    ),
+                skip_balance_update: z
+                    .boolean()
+                    .optional()
+                    .describe("Skip updating balance for assets/accounts"),
+            },
+            annotations: {
+                idempotentHint: true,
+            },
         },
         async ({
             transaction_id,
@@ -439,17 +476,22 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "unsplit_transactions",
-        "Remove one or more transactions from a split",
         {
-            parent_ids: z
-                .array(z.number())
-                .describe("Array of parent transaction IDs to unsplit"),
-            remove_parents: z
-                .boolean()
-                .optional()
-                .describe("If true, delete parent transactions"),
+            description: "Remove one or more transactions from a split",
+            inputSchema: {
+                parent_ids: z
+                    .array(z.number())
+                    .describe("Array of parent transaction IDs to unsplit"),
+                remove_parents: z
+                    .boolean()
+                    .optional()
+                    .describe("If true, delete parent transactions"),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
         },
         async ({ parent_ids, remove_parents }) => {
             try {
@@ -495,11 +537,18 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "get_transaction_group",
-        "Get details of a transaction group",
         {
-            transaction_id: z.number().describe("ID of the transaction group"),
+            description: "Get details of a transaction group",
+            inputSchema: {
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction group"),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
         },
         async ({ transaction_id }) => {
             try {
@@ -539,24 +588,29 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "create_transaction_group",
-        "Create a transaction group",
         {
-            date: z.string().describe("Date in YYYY-MM-DD format"),
-            payee: z.string().describe("Payee name for the group"),
-            category_id: z
-                .number()
-                .optional()
-                .describe("Category ID for the group"),
-            notes: z.string().optional().describe("Notes for the group"),
-            tags: z
-                .array(z.number())
-                .optional()
-                .describe("Array of tag IDs for the group"),
-            transaction_ids: z
-                .array(z.number())
-                .describe("Array of transaction IDs to group"),
+            description: "Create a transaction group",
+            inputSchema: {
+                date: z.string().describe("Date in YYYY-MM-DD format"),
+                payee: z.string().describe("Payee name for the group"),
+                category_id: z
+                    .number()
+                    .optional()
+                    .describe("Category ID for the group"),
+                notes: z.string().optional().describe("Notes for the group"),
+                tags: z
+                    .array(z.number())
+                    .optional()
+                    .describe("Array of tag IDs for the group"),
+                transaction_ids: z
+                    .array(z.number())
+                    .describe("Array of transaction IDs to group"),
+            },
+            annotations: {
+                idempotentHint: false,
+            },
         },
         async ({ date, payee, category_id, notes, tags, transaction_ids }) => {
             try {
@@ -603,13 +657,18 @@ export function registerTransactionTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "delete_transaction_group",
-        "Delete a transaction group or a single transaction.",
         {
-            transaction_id: z
-                .number()
-                .describe("ID of the transaction group to delete"),
+            description: "Delete a transaction group or a single transaction.",
+            inputSchema: {
+                transaction_id: z
+                    .number()
+                    .describe("ID of the transaction group to delete"),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
         },
         async ({ transaction_id }) => {
             try {

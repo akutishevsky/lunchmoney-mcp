@@ -5,10 +5,15 @@ import { formatData } from "../format.js";
 import { Tag } from "../types.js";
 
 export function registerTagTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_all_tags",
-        "Get a list of all tags associated with the user's account.",
-        {},
+        {
+            description:
+                "Get a list of all tags associated with the user's account.",
+            annotations: {
+                readOnlyHint: true,
+            },
+        },
         async () => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
