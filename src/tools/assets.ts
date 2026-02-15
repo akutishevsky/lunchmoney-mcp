@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { Asset } from "../types.js";
 
 export function registerAssetTools(server: McpServer) {
@@ -35,7 +36,7 @@ export function registerAssetTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(assets),
+                            text: formatData(assets),
                         },
                     ],
                 };
@@ -140,7 +141,7 @@ export function registerAssetTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
@@ -254,7 +255,7 @@ export function registerAssetTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };

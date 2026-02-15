@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { Crypto } from "../types.js";
 
 export function registerCryptoTools(server: McpServer) {
@@ -35,7 +36,7 @@ export function registerCryptoTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(cryptoAssets),
+                            text: formatData(cryptoAssets),
                         },
                     ],
                 };
@@ -96,7 +97,7 @@ export function registerCryptoTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };

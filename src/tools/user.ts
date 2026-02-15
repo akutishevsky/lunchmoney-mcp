@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { User } from "../types.js";
 
 export function registerUserTools(server: McpServer) {
@@ -28,7 +29,7 @@ export function registerUserTools(server: McpServer) {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(user),
+                        text: formatData(user),
                     },
                 ],
             };

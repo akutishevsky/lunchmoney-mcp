@@ -64,3 +64,5 @@ Key conventions:
 ## Workflow Preferences
 
 Always execute tasks in parallel when possible. If multiple independent operations need to be performed (e.g., reading files, running searches, editing unrelated files, running builds), do them simultaneously rather than sequentially. Only run tasks sequentially when there is a dependency between them.
+
+When unsure about something — an API, a library, a protocol, a format, or any technical concept — use web search to look it up before responding. Do not guess or speculate; verify first.

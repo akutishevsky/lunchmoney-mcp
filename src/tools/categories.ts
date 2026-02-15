@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { Category, CategoryChild } from "../types.js";
 
 export function registerCategoryTools(server: McpServer) {
@@ -46,7 +47,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(categories),
+                            text: formatData(categories),
                         },
                     ],
                 };
@@ -96,7 +97,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(category),
+                            text: formatData(category),
                         },
                     ],
                 };
@@ -206,7 +207,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(category),
+                            text: formatData(category),
                         },
                     ],
                 };
@@ -320,7 +321,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(await response.json()),
+                            text: formatData(await response.json()),
                         },
                     ],
                 };
@@ -437,7 +438,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(await response.json()),
+                            text: formatData(await response.json()),
                         },
                     ],
                 };
@@ -508,7 +509,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(await response.json()),
+                            text: formatData(await response.json()),
                         },
                     ],
                 };
@@ -559,7 +560,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(await response.json()),
+                            text: formatData(await response.json()),
                         },
                     ],
                 };
@@ -610,7 +611,7 @@ export function registerCategoryTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(await response.json()),
+                            text: formatData(await response.json()),
                         },
                     ],
                 };

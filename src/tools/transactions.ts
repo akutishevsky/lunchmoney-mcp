@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { Transaction } from "../types.js";
 
 export function registerTransactionTools(server: McpServer) {
@@ -113,7 +114,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify({
+                            text: formatData({
                                 transactions,
                                 has_more: data.has_more,
                             }),
@@ -177,7 +178,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(transaction),
+                            text: formatData(transaction),
                         },
                     ],
                 };
@@ -312,7 +313,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
@@ -429,7 +430,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
@@ -487,7 +488,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
@@ -535,7 +536,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
@@ -597,7 +598,7 @@ export function registerTransactionTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: formatData(result),
                         },
                     ],
                 };
