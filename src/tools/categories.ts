@@ -68,7 +68,7 @@ export function registerCategoryTools(server: McpServer) {
                 "Get hydrated details on a single category. Note that if this category is part of a category group, its properties (is_income, exclude_from_budget, exclude_from_totals) will inherit from the category group.",
             inputSchema: {
                 categoryId: z
-                    .string()
+                    .number()
                     .describe(
                         "Id of the category to query. Should call the get_all_categories tool first to get the ids.",
                     ),
@@ -348,54 +348,50 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Update the properties for a single category or category group.",
             inputSchema: {
-                name: z
-                    .string()
-                    .describe(
-                        "Name of category. Must be between 1 and 40 characters.",
-                    ),
                 categoryId: z
-                    .string()
+                    .number()
                     .describe(
                         "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids.",
+                    ),
+                name: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
                     .optional()
-                    .default("")
                     .describe(
                         "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe("Whether or not category should be archived."),
                 group_id: z
                     .number()
                     .optional()
                     .describe(
-                        "Assigns the newly-created category to an existing category group.",
+                        "Assigns the category to an existing category group.",
                     ),
             },
             annotations: {
@@ -403,8 +399,8 @@ export function registerCategoryTools(server: McpServer) {
             },
         },
         async ({
-            name,
             categoryId,
+            name,
             description,
             is_income,
             exclude_from_budget,
@@ -414,18 +410,18 @@ export function registerCategoryTools(server: McpServer) {
         }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const requestBody: any = {
-                    name,
-                    description,
-                    is_income,
-                    exclude_from_budget,
-                    exclude_from_totals,
-                    archived,
-                };
+                const requestBody: Record<string, unknown> = {};
 
-                if (group_id !== undefined) {
-                    requestBody.group_id = group_id;
-                }
+                if (name !== undefined) requestBody.name = name;
+                if (description !== undefined)
+                    requestBody.description = description;
+                if (is_income !== undefined) requestBody.is_income = is_income;
+                if (exclude_from_budget !== undefined)
+                    requestBody.exclude_from_budget = exclude_from_budget;
+                if (exclude_from_totals !== undefined)
+                    requestBody.exclude_from_totals = exclude_from_totals;
+                if (archived !== undefined) requestBody.archived = archived;
+                if (group_id !== undefined) requestBody.group_id = group_id;
 
                 const response = await fetch(
                     `${baseUrl}/categories/${categoryId}`,
