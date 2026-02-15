@@ -9,7 +9,8 @@
     "scripts": {
         "build": "tsc && chmod 755 build/index.js",
         "build:mcpb": "npm run build && mkdir -p dist && npx @anthropic-ai/mcpb pack . dist/lunchmoney.mcpb",
-        "prepublish": "npm run build:mcpb",
+        "prepublish:changelog": "claude -p 'update @CHANGELOG.md and update package versions everywhere where needed'",
+        "prepublishOnly": "npm run build:mcpb",
         "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js",
         "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
         "format": "prettier --write .",
