@@ -13,7 +13,7 @@
         "format": "prettier --write .",
         "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
         "prepare": "husky",
-        "prepublish:changelog": "claude -p 'update @CHANGELOG.md and update package versions everywhere where needed'",
+        "prepublish:changelog": "claude -p --allowedTools Edit,Read,Glob,Grep 'update @CHANGELOG.md and update package versions everywhere where needed'",
         "prepublishOnly": "npm run build:mcpb"
     },
     "files": [
