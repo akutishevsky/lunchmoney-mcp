@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
+import { getErrorMessage, errorResponse, catchError } from "../errors.js";
 import { Category, CategoryChild } from "../types.js";
 
 export function registerCategoryTools(server: McpServer) {
@@ -18,35 +19,40 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const format = input.format || "flattened";
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const response = await fetch(`${baseUrl}/categories?format=${format}`, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const format = input.format || "flattened";
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const response = await fetch(
+                    `${baseUrl}/categories?format=${format}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get all categories"
+                        )
+                    );
+                }
+
+                const categories: Category[] = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get all categories: ${response.statusText}`,
+                            text: JSON.stringify(categories),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get all categories");
             }
-
-            const categories: Category[] = await response.json();
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(categories),
-                    },
-                ],
-            };
         }
     );
 
@@ -63,35 +69,40 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { categoryId } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const response = await fetch(`${baseUrl}/categories/${categoryId}`, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const { categoryId } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const response = await fetch(
+                    `${baseUrl}/categories/${categoryId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get single category"
+                        )
+                    );
+                }
+
+                const category: Category = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get single category: ${response.statusText}`,
+                            text: JSON.stringify(category),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get single category");
             }
-
-            const category: Category = await response.json();
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(category),
-                    },
-                ],
-            };
         }
     );
 
@@ -147,59 +158,61 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const {
-                name,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                archived,
-                group_id,
-            } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const requestBody: any = {
-                name,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                archived,
-            };
+            try {
+                const {
+                    name,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    archived,
+                    group_id,
+                } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const requestBody: any = {
+                    name,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    archived,
+                };
 
-            if (group_id !== undefined) {
-                requestBody.group_id = group_id;
-            }
+                if (group_id !== undefined) {
+                    requestBody.group_id = group_id;
+                }
 
-            const response = await fetch(`${baseUrl}/categories`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-            });
+                const response = await fetch(`${baseUrl}/categories`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(requestBody),
+                });
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to create category"
+                        )
+                    );
+                }
+
+                const category: Category = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to create a single category: ${response.statusText}`,
+                            text: JSON.stringify(category),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to create category");
             }
-
-            const category: Category = await response.json();
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(category),
-                    },
-                ],
-            };
         }
     );
 
@@ -256,62 +269,64 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const {
-                name,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                category_ids,
-                new_categories,
-            } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const requestBody: any = {
-                name,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                category_ids,
-                new_categories,
-            };
+            try {
+                const {
+                    name,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    category_ids,
+                    new_categories,
+                } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const requestBody: any = {
+                    name,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    category_ids,
+                    new_categories,
+                };
 
-            if (category_ids && category_ids.length > 0) {
-                requestBody.category_ids = category_ids;
-            }
+                if (category_ids && category_ids.length > 0) {
+                    requestBody.category_ids = category_ids;
+                }
 
-            if (new_categories && new_categories.length > 0) {
-                requestBody.new_categories = new_categories;
-            }
+                if (new_categories && new_categories.length > 0) {
+                    requestBody.new_categories = new_categories;
+                }
 
-            const response = await fetch(`${baseUrl}/categories/group`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-            });
+                const response = await fetch(`${baseUrl}/categories/group`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(requestBody),
+                });
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to create category group"
+                        )
+                    );
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to create a single category group: ${response.statusText}`,
+                            text: JSON.stringify(await response.json()),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to create category group");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await response.json()),
-                    },
-                ],
-            };
         }
     );
 
@@ -372,58 +387,63 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const {
-                name,
-                categoryId,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                archived,
-                group_id,
-            } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const requestBody: any = {
-                name,
-                description,
-                is_income,
-                exclude_from_budget,
-                exclude_from_totals,
-                archived,
-            };
+            try {
+                const {
+                    name,
+                    categoryId,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    archived,
+                    group_id,
+                } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const requestBody: any = {
+                    name,
+                    description,
+                    is_income,
+                    exclude_from_budget,
+                    exclude_from_totals,
+                    archived,
+                };
 
-            if (group_id !== undefined) {
-                requestBody.group_id = group_id;
-            }
+                if (group_id !== undefined) {
+                    requestBody.group_id = group_id;
+                }
 
-            const response = await fetch(`${baseUrl}/categories/${categoryId}`, {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-            });
+                const response = await fetch(
+                    `${baseUrl}/categories/${categoryId}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(requestBody),
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to update category"
+                        )
+                    );
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to update a single category: ${response.statusText}`,
+                            text: JSON.stringify(await response.json()),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to update category");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await response.json()),
-                    },
-                ],
-            };
         }
     );
 
@@ -432,7 +452,9 @@ export function registerCategoryTools(server: McpServer) {
         "Add categories (either existing or new) to a single category group.",
         {
             input: z.object({
-                group_id: z.number().describe("Id of the parent group to add to."),
+                group_id: z
+                    .number()
+                    .describe("Id of the parent group to add to."),
                 category_ids: z
                     .array(z.number())
                     .optional()
@@ -448,49 +470,51 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { group_id, category_ids, new_categories } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            const requestBody: any = {};
+            try {
+                const { group_id, category_ids, new_categories } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
+                const requestBody: any = {};
 
-            if (category_ids && category_ids.length > 0) {
-                requestBody.category_ids = category_ids;
-            }
-
-            if (new_categories && new_categories.length > 0) {
-                requestBody.new_categories = new_categories;
-            }
-
-            const response = await fetch(
-                `${baseUrl}/categories/group/${group_id}/add`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(requestBody),
+                if (category_ids && category_ids.length > 0) {
+                    requestBody.category_ids = category_ids;
                 }
-            );
 
-            if (!response.ok) {
+                if (new_categories && new_categories.length > 0) {
+                    requestBody.new_categories = new_categories;
+                }
+
+                const response = await fetch(
+                    `${baseUrl}/categories/group/${group_id}/add`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(requestBody),
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to add to category group"
+                        )
+                    );
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to add to a single category group: ${response.statusText}`,
+                            text: JSON.stringify(await response.json()),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to add to category group");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await response.json()),
-                    },
-                ],
-            };
         }
     );
 
@@ -508,35 +532,40 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { category_id } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { category_id } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(`${baseUrl}/categories/${category_id}`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+                const response = await fetch(
+                    `${baseUrl}/categories/${category_id}`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to delete category"
+                        )
+                    );
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to delete a single category or category group: ${response.statusText}`,
+                            text: JSON.stringify(await response.json()),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to delete category");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await response.json()),
-                    },
-                ],
-            };
         }
     );
 
@@ -554,38 +583,40 @@ export function registerCategoryTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { category_id } = input;
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { category_id } = input;
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(
-                `${baseUrl}/categories/${category_id}/force`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
+                const response = await fetch(
+                    `${baseUrl}/categories/${category_id}/force`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to force delete category"
+                        )
+                    );
                 }
-            );
 
-            if (!response.ok) {
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to force delete a single category or category group: ${response.statusText}`,
+                            text: JSON.stringify(await response.json()),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to force delete category");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(await response.json()),
-                    },
-                ],
-            };
         }
     );
 }

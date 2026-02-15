@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
+import { getErrorMessage, errorResponse, catchError } from "../errors.js";
 import { RecurringItem } from "../types.js";
 
 export function registerRecurringItemsTools(server: McpServer) {
@@ -12,7 +13,9 @@ export function registerRecurringItemsTools(server: McpServer) {
                 start_date: z
                     .string()
                     .optional()
-                    .describe("Start date in YYYY-MM-DD format. Defaults to first day of current month"),
+                    .describe(
+                        "Start date in YYYY-MM-DD format. Defaults to first day of current month"
+                    ),
                 end_date: z
                     .string()
                     .optional()
@@ -24,46 +27,52 @@ export function registerRecurringItemsTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
-            const params = new URLSearchParams();
-            if (input.start_date) params.append("start_date", input.start_date);
-            if (input.end_date) params.append("end_date", input.end_date);
-            if (input.debit_as_negative !== undefined) {
-                params.append("debit_as_negative", input.debit_as_negative.toString());
-            }
-            
-            const url = params.toString() 
-                ? `${baseUrl}/recurring_items?${params}`
-                : `${baseUrl}/recurring_items`;
-                
-            const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            if (!response.ok) {
+                const params = new URLSearchParams();
+                if (input.start_date)
+                    params.append("start_date", input.start_date);
+                if (input.end_date) params.append("end_date", input.end_date);
+                if (input.debit_as_negative !== undefined) {
+                    params.append(
+                        "debit_as_negative",
+                        input.debit_as_negative.toString()
+                    );
+                }
+
+                const url = params.toString()
+                    ? `${baseUrl}/recurring_items?${params}`
+                    : `${baseUrl}/recurring_items`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get recurring items"
+                        )
+                    );
+                }
+
+                const recurringItems: RecurringItem[] = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get recurring items: ${response.statusText}`,
+                            text: JSON.stringify(recurringItems),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get recurring items");
             }
-
-            const recurringItems: RecurringItem[] = await response.json();
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(recurringItems),
-                    },
-                ],
-            };
         }
     );
 }
