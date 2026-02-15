@@ -1,6 +1,6 @@
 # LunchMoney MCP Server
 
-A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lunchmoney.app/), providing programmatic access to personal finance management through LunchMoney's API. Also available as a Desktop Extension Tool (DXT) for easy installation in Claude Desktop.
+A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lunchmoney.app/), providing programmatic access to personal finance management through LunchMoney's API. Also available as an MCP Bundle (.mcpb) for easy installation in Claude Desktop.
 
 <a href="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp/badge" alt="LunchMoney Server MCP server" />
@@ -35,13 +35,13 @@ This MCP server enables AI assistants and other MCP clients to interact with Lun
 
 ### Installation Options
 
-#### Option 1: Desktop Extension Tool (DXT) - Recommended
+#### Option 1: MCP Bundle (.mcpb) - Recommended
 
-The easiest way to install this server is as a Desktop Extension Tool in Claude Desktop:
+The easiest way to install this server is as an MCP Bundle in Claude Desktop:
 
-1. Download the latest `.dxt` file from the [releases page](https://github.com/akutishevsky/lunchmoney-mcp/releases)
+1. Download the latest `.mcpb` file from the [releases page](https://github.com/akutishevsky/lunchmoney-mcp/releases)
 2. Open Claude Desktop and go to Extensions
-3. Click "Install Extension" and select the downloaded `.dxt` file
+3. Click "Install Extension" and select the downloaded `.mcpb` file
 4. Enter your LunchMoney API token when prompted (get it from [LunchMoney Developer Settings](https://my.lunchmoney.app/developers))
 5. The LunchMoney tools will be immediately available
 
@@ -255,8 +255,8 @@ lunchmoney-mcp/
 # Build the MCP server
 npm run build
 
-# Build DXT package for distribution
-npm run build:dxt
+# Build MCPB package for distribution
+npm run build:mcpb
 ```
 
 ### Adding New Tools
