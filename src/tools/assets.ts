@@ -22,10 +22,7 @@ export function registerAssetTools(server: McpServer) {
 
                 if (!response.ok) {
                     return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get assets"
-                        )
+                        await getErrorMessage(response, "Failed to get assets"),
                     );
                 }
 
@@ -43,7 +40,7 @@ export function registerAssetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get assets");
             }
-        }
+        },
     );
 
     server.tool(
@@ -68,7 +65,9 @@ export function registerAssetTools(server: McpServer) {
                 subtype_name: z
                     .string()
                     .optional()
-                    .describe("Optional subtype (e.g., retirement, checking, savings)"),
+                    .describe(
+                        "Optional subtype (e.g., retirement, checking, savings)",
+                    ),
                 name: z.string().describe("Name of the asset"),
                 display_name: z
                     .string()
@@ -78,11 +77,15 @@ export function registerAssetTools(server: McpServer) {
                 balance_as_of: z
                     .string()
                     .optional()
-                    .describe("Date/time the balance is as of in ISO 8601 format"),
+                    .describe(
+                        "Date/time the balance is as of in ISO 8601 format",
+                    ),
                 currency: z
                     .string()
                     .optional()
-                    .describe("Three-letter currency code (defaults to primary currency)"),
+                    .describe(
+                        "Three-letter currency code (defaults to primary currency)",
+                    ),
                 institution_name: z
                     .string()
                     .optional()
@@ -94,7 +97,9 @@ export function registerAssetTools(server: McpServer) {
                 exclude_transactions: z
                     .boolean()
                     .optional()
-                    .describe("Whether to exclude this asset from transaction options"),
+                    .describe(
+                        "Whether to exclude this asset from transaction options",
+                    ),
             }),
         },
         async ({ input }) => {
@@ -109,7 +114,8 @@ export function registerAssetTools(server: McpServer) {
 
                 if (input.subtype_name) body.subtype_name = input.subtype_name;
                 if (input.display_name) body.display_name = input.display_name;
-                if (input.balance_as_of) body.balance_as_of = input.balance_as_of;
+                if (input.balance_as_of)
+                    body.balance_as_of = input.balance_as_of;
                 if (input.currency) body.currency = input.currency;
                 if (input.institution_name)
                     body.institution_name = input.institution_name;
@@ -130,8 +136,8 @@ export function registerAssetTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to create asset"
-                        )
+                            "Failed to create asset",
+                        ),
                     );
                 }
 
@@ -148,7 +154,7 @@ export function registerAssetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to create asset");
             }
-        }
+        },
     );
 
     server.tool(
@@ -175,7 +181,9 @@ export function registerAssetTools(server: McpServer) {
                 subtype_name: z
                     .string()
                     .optional()
-                    .describe("Optional subtype (e.g., retirement, checking, savings)"),
+                    .describe(
+                        "Optional subtype (e.g., retirement, checking, savings)",
+                    ),
                 name: z.string().optional().describe("Name of the asset"),
                 display_name: z
                     .string()
@@ -188,7 +196,9 @@ export function registerAssetTools(server: McpServer) {
                 balance_as_of: z
                     .string()
                     .optional()
-                    .describe("Date/time the balance is as of in ISO 8601 format"),
+                    .describe(
+                        "Date/time the balance is as of in ISO 8601 format",
+                    ),
                 currency: z
                     .string()
                     .optional()
@@ -204,7 +214,9 @@ export function registerAssetTools(server: McpServer) {
                 exclude_transactions: z
                     .boolean()
                     .optional()
-                    .describe("Whether to exclude this asset from transaction options"),
+                    .describe(
+                        "Whether to exclude this asset from transaction options",
+                    ),
             }),
         },
         async ({ input }) => {
@@ -237,15 +249,15 @@ export function registerAssetTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify(body),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to update asset"
-                        )
+                            "Failed to update asset",
+                        ),
                     );
                 }
 
@@ -262,6 +274,6 @@ export function registerAssetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to update asset");
             }
-        }
+        },
     );
 }

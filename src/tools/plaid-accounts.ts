@@ -23,8 +23,8 @@ export function registerPlaidAccountTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get Plaid accounts"
-                        )
+                            "Failed to get Plaid accounts",
+                        ),
                     );
                 }
 
@@ -42,7 +42,7 @@ export function registerPlaidAccountTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get Plaid accounts");
             }
-        }
+        },
     );
 
     server.tool(
@@ -60,15 +60,15 @@ export function registerPlaidAccountTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to trigger Plaid fetch"
-                        )
+                            "Failed to trigger Plaid fetch",
+                        ),
                     );
                 }
 
@@ -83,6 +83,6 @@ export function registerPlaidAccountTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to trigger Plaid fetch");
             }
-        }
+        },
     );
 }

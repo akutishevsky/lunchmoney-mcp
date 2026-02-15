@@ -12,7 +12,8 @@
         "prepublish": "npm run build:mcpb",
         "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js",
         "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "prepare": "husky"
     },
     "files": [
         "build"
@@ -40,6 +41,7 @@
     },
     "devDependencies": {
         "@types/node": "^24.1.0",
+        "husky": "^9.1.7",
         "prettier": "^3.8.1",
         "typescript": "^5.8.3"
     }

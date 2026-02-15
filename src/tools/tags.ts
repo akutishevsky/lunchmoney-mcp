@@ -22,8 +22,8 @@ export function registerTagTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get all tags"
-                        )
+                            "Failed to get all tags",
+                        ),
                     );
                 }
 
@@ -40,6 +40,6 @@ export function registerTagTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get all tags");
             }
-        }
+        },
     );
 }

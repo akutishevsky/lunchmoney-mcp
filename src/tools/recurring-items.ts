@@ -15,7 +15,7 @@ export function registerRecurringItemsTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe(
-                        "Start date in YYYY-MM-DD format. Defaults to first day of current month"
+                        "Start date in YYYY-MM-DD format. Defaults to first day of current month",
                     ),
                 end_date: z
                     .string()
@@ -38,7 +38,7 @@ export function registerRecurringItemsTools(server: McpServer) {
                 if (input.debit_as_negative !== undefined) {
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString()
+                        input.debit_as_negative.toString(),
                     );
                 }
 
@@ -56,8 +56,8 @@ export function registerRecurringItemsTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get recurring items"
-                        )
+                            "Failed to get recurring items",
+                        ),
                     );
                 }
 
@@ -74,6 +74,6 @@ export function registerRecurringItemsTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get recurring items");
             }
-        }
+        },
     );
 }

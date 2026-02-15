@@ -45,7 +45,7 @@ export function registerTransactionTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe(
-                        "Maximum number of transactions to return (max 500)"
+                        "Maximum number of transactions to return (max 500)",
                     ),
                 debit_as_negative: z
                     .boolean()
@@ -65,11 +65,14 @@ export function registerTransactionTools(server: McpServer) {
                 if (input.tag_id !== undefined)
                     params.append("tag_id", input.tag_id.toString());
                 if (input.recurring_id !== undefined)
-                    params.append("recurring_id", input.recurring_id.toString());
+                    params.append(
+                        "recurring_id",
+                        input.recurring_id.toString(),
+                    );
                 if (input.plaid_account_id !== undefined)
                     params.append(
                         "plaid_account_id",
-                        input.plaid_account_id.toString()
+                        input.plaid_account_id.toString(),
                     );
                 if (input.category_id !== undefined)
                     params.append("category_id", input.category_id.toString());
@@ -86,7 +89,7 @@ export function registerTransactionTools(server: McpServer) {
                 if (input.debit_as_negative !== undefined)
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString()
+                        input.debit_as_negative.toString(),
                     );
 
                 const response = await fetch(
@@ -95,15 +98,15 @@ export function registerTransactionTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get transactions"
-                        )
+                            "Failed to get transactions",
+                        ),
                     );
                 }
 
@@ -124,7 +127,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get transactions");
             }
-        }
+        },
     );
 
     server.tool(
@@ -149,7 +152,7 @@ export function registerTransactionTools(server: McpServer) {
                 if (input.debit_as_negative !== undefined) {
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString()
+                        input.debit_as_negative.toString(),
                     );
                 }
 
@@ -167,8 +170,8 @@ export function registerTransactionTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get transaction"
-                        )
+                            "Failed to get transaction",
+                        ),
                     );
                 }
 
@@ -185,7 +188,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get transaction");
             }
-        }
+        },
     );
 
     server.tool(
@@ -203,13 +206,13 @@ export function registerTransactionTools(server: McpServer) {
                             amount: z
                                 .string()
                                 .describe(
-                                    "Amount as string with up to 4 decimal places"
+                                    "Amount as string with up to 4 decimal places",
                                 ),
                             currency: z
                                 .string()
                                 .optional()
                                 .describe(
-                                    "Three-letter lowercase currency code"
+                                    "Three-letter lowercase currency code",
                                 ),
                             category_id: z
                                 .number()
@@ -239,7 +242,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .array(z.number())
                                 .optional()
                                 .describe("Array of tag IDs"),
-                        })
+                        }),
                     )
                     .describe("Array of transactions to create"),
                 apply_rules: z
@@ -250,19 +253,19 @@ export function registerTransactionTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "Skip transactions that are potential duplicates"
+                        "Skip transactions that are potential duplicates",
                     ),
                 check_for_recurring: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Check if transactions are part of recurring expenses"
+                        "Check if transactions are part of recurring expenses",
                     ),
                 debit_as_negative: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Pass true if debits are provided as negative amounts"
+                        "Pass true if debits are provided as negative amounts",
                     ),
                 skip_balance_update: z
                     .boolean()
@@ -302,8 +305,8 @@ export function registerTransactionTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to create transactions"
-                        )
+                            "Failed to create transactions",
+                        ),
                     );
                 }
 
@@ -320,7 +323,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to create transactions");
             }
-        }
+        },
     );
 
     server.tool(
@@ -342,7 +345,7 @@ export function registerTransactionTools(server: McpServer) {
                             .string()
                             .optional()
                             .describe(
-                                "Amount as string with up to 4 decimal places"
+                                "Amount as string with up to 4 decimal places",
                             ),
                         currency: z
                             .string()
@@ -382,7 +385,7 @@ export function registerTransactionTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "Pass true if debits are provided as negative amounts"
+                        "Pass true if debits are provided as negative amounts",
                     ),
                 skip_balance_update: z
                     .boolean()
@@ -412,15 +415,15 @@ export function registerTransactionTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify(body),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to update transaction"
-                        )
+                            "Failed to update transaction",
+                        ),
                     );
                 }
 
@@ -437,7 +440,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to update transaction");
             }
-        }
+        },
     );
 
     server.tool(
@@ -470,15 +473,15 @@ export function registerTransactionTools(server: McpServer) {
                             parent_ids: input.parent_ids,
                             remove_parents: input.remove_parents,
                         }),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to unsplit transactions"
-                        )
+                            "Failed to unsplit transactions",
+                        ),
                     );
                 }
 
@@ -495,7 +498,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to unsplit transactions");
             }
-        }
+        },
     );
 
     server.tool(
@@ -518,15 +521,15 @@ export function registerTransactionTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get transaction group"
-                        )
+                            "Failed to get transaction group",
+                        ),
                     );
                 }
 
@@ -543,7 +546,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get transaction group");
             }
-        }
+        },
     );
 
     server.tool(
@@ -571,24 +574,21 @@ export function registerTransactionTools(server: McpServer) {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-                const response = await fetch(
-                    `${baseUrl}/transactions/group`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(input),
-                    }
-                );
+                const response = await fetch(`${baseUrl}/transactions/group`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(input),
+                });
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to create transaction group"
-                        )
+                            "Failed to create transaction group",
+                        ),
                     );
                 }
 
@@ -605,7 +605,7 @@ export function registerTransactionTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to create transaction group");
             }
-        }
+        },
     );
 
     server.tool(
@@ -629,15 +629,15 @@ export function registerTransactionTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to delete transaction group"
-                        )
+                            "Failed to delete transaction group",
+                        ),
                     );
                 }
 
@@ -650,11 +650,8 @@ export function registerTransactionTools(server: McpServer) {
                     ],
                 };
             } catch (error) {
-                return catchError(
-                    error,
-                    "Failed to delete transaction group"
-                );
+                return catchError(error, "Failed to delete transaction group");
             }
-        }
+        },
     );
 }

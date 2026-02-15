@@ -1,6 +1,6 @@
 export async function getErrorMessage(
     response: Response,
-    fallbackMessage: string
+    fallbackMessage: string,
 ): Promise<string> {
     try {
         const body = await response.text();
@@ -32,7 +32,6 @@ export function errorResponse(text: string) {
 }
 
 export function catchError(error: unknown, context: string) {
-    const message =
-        error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : String(error);
     return errorResponse(`${context}: ${message}`);
 }

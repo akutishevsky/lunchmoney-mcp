@@ -8,7 +8,7 @@ let config: Config | null = null;
 const initializeConfig = (): Config => {
     if (!process.env.LUNCHMONEY_API_TOKEN) {
         throw new Error(
-            "Failed to get the LUNCHMONEY_API_TOKEN. Probably it wasn't added during the server configuration."
+            "Failed to get the LUNCHMONEY_API_TOKEN. Probably it wasn't added during the server configuration.",
         );
     }
 
@@ -23,7 +23,7 @@ const initializeConfig = (): Config => {
 const getConfig = (): Config => {
     if (!config) {
         throw new Error(
-            "Configuration not initialized. Call initializeConfig() first."
+            "Configuration not initialized. Call initializeConfig() first.",
         );
     }
     return config;

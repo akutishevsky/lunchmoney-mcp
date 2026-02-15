@@ -14,18 +14,18 @@ export function registerBudgetTools(server: McpServer) {
                 start_date: z
                     .string()
                     .describe(
-                        "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)"
+                        "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
                     ),
                 end_date: z
                     .string()
                     .describe(
-                        "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)"
+                        "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
                     ),
                 currency: z
                     .string()
                     .optional()
                     .describe(
-                        "Currency for budget (defaults to primary currency)"
+                        "Currency for budget (defaults to primary currency)",
                     ),
             }),
         },
@@ -52,8 +52,8 @@ export function registerBudgetTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get budget summary"
-                        )
+                            "Failed to get budget summary",
+                        ),
                     );
                 }
 
@@ -70,7 +70,7 @@ export function registerBudgetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get budget summary");
             }
-        }
+        },
     );
 
     server.tool(
@@ -87,7 +87,7 @@ export function registerBudgetTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe(
-                        "Currency for budget (defaults to primary currency)"
+                        "Currency for budget (defaults to primary currency)",
                     ),
             }),
         },
@@ -118,8 +118,8 @@ export function registerBudgetTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to upsert budget"
-                        )
+                            "Failed to upsert budget",
+                        ),
                     );
                 }
 
@@ -136,7 +136,7 @@ export function registerBudgetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to upsert budget");
             }
-        }
+        },
     );
 
     server.tool(
@@ -172,8 +172,8 @@ export function registerBudgetTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to remove budget"
-                        )
+                            "Failed to remove budget",
+                        ),
                     );
                 }
 
@@ -188,6 +188,6 @@ export function registerBudgetTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to remove budget");
             }
-        }
+        },
     );
 }

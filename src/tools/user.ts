@@ -18,8 +18,8 @@ export function registerUserTools(server: McpServer) {
                 return errorResponse(
                     await getErrorMessage(
                         response,
-                        "Failed to get user details"
-                    )
+                        "Failed to get user details",
+                    ),
                 );
             }
 

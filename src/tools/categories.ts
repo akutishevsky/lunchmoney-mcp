@@ -15,7 +15,7 @@ export function registerCategoryTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe(
-                        "Can either flattened or nested. If flattened, returns a singular array of categories, ordered alphabetically. If nested, returns top-level categories (either category groups or categories not part of a category group) in an array. Subcategories are nested within the category group under the property children."
+                        "Can either flattened or nested. If flattened, returns a singular array of categories, ordered alphabetically. If nested, returns top-level categories (either category groups or categories not part of a category group) in an array. Subcategories are nested within the category group under the property children.",
                     ),
             }),
         },
@@ -29,15 +29,15 @@ export function registerCategoryTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get all categories"
-                        )
+                            "Failed to get all categories",
+                        ),
                     );
                 }
 
@@ -54,7 +54,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get all categories");
             }
-        }
+        },
     );
 
     server.tool(
@@ -65,7 +65,7 @@ export function registerCategoryTools(server: McpServer) {
                 categoryId: z
                     .string()
                     .describe(
-                        "Id of the category to query. Should call the get_all_categories tool first to get the ids."
+                        "Id of the category to query. Should call the get_all_categories tool first to get the ids.",
                     ),
             }),
         },
@@ -79,15 +79,15 @@ export function registerCategoryTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get single category"
-                        )
+                            "Failed to get single category",
+                        ),
                     );
                 }
 
@@ -104,7 +104,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get single category");
             }
-        }
+        },
     );
 
     server.tool(
@@ -115,35 +115,35 @@ export function registerCategoryTools(server: McpServer) {
                 name: z
                     .string()
                     .describe(
-                        "Name of category. Must be between 1 and 40 characters."
+                        "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
                     .optional()
                     .default("")
                     .describe(
-                        "Description of category. Must be less than 140 characters."
+                        "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be treated as income."
+                        "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from budgets."
+                        "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals."
+                        "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
@@ -154,7 +154,7 @@ export function registerCategoryTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe(
-                        "Assigns the newly-created category to an existing category group."
+                        "Assigns the newly-created category to an existing category group.",
                     ),
             }),
         },
@@ -196,8 +196,8 @@ export function registerCategoryTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to create category"
-                        )
+                            "Failed to create category",
+                        ),
                     );
                 }
 
@@ -214,7 +214,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to create category");
             }
-        }
+        },
     );
 
     server.tool(
@@ -225,47 +225,47 @@ export function registerCategoryTools(server: McpServer) {
                 name: z
                     .string()
                     .describe(
-                        "Name of category. Must be between 1 and 40 characters."
+                        "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
                     .optional()
                     .default("")
                     .describe(
-                        "Description of category. Must be less than 140 characters."
+                        "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be treated as income."
+                        "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from budgets."
+                        "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals."
+                        "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 category_ids: z
                     .array(z.number())
                     .optional()
                     .describe(
-                        "Array of category_id to include in the category group."
+                        "Array of category_id to include in the category group.",
                     ),
                 new_categories: z
                     .array(z.string())
                     .optional()
                     .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group."
+                        "Array of strings representing new categories to create and subsequently include in the category group.",
                     ),
             }),
         },
@@ -312,8 +312,8 @@ export function registerCategoryTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to create category group"
-                        )
+                            "Failed to create category group",
+                        ),
                     );
                 }
 
@@ -328,7 +328,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to create category group");
             }
-        }
+        },
     );
 
     server.tool(
@@ -339,40 +339,40 @@ export function registerCategoryTools(server: McpServer) {
                 name: z
                     .string()
                     .describe(
-                        "Name of category. Must be between 1 and 40 characters."
+                        "Name of category. Must be between 1 and 40 characters.",
                     ),
                 categoryId: z
                     .string()
                     .describe(
-                        "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids."
+                        "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids.",
                     ),
                 description: z
                     .string()
                     .optional()
                     .default("")
                     .describe(
-                        "Description of category. Must be less than 140 characters."
+                        "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be treated as income."
+                        "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from budgets."
+                        "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
                     .default(false)
                     .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals."
+                        "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
@@ -383,7 +383,7 @@ export function registerCategoryTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe(
-                        "Assigns the newly-created category to an existing category group."
+                        "Assigns the newly-created category to an existing category group.",
                     ),
             }),
         },
@@ -422,15 +422,15 @@ export function registerCategoryTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify(requestBody),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to update category"
-                        )
+                            "Failed to update category",
+                        ),
                     );
                 }
 
@@ -445,7 +445,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to update category");
             }
-        }
+        },
     );
 
     server.tool(
@@ -460,13 +460,13 @@ export function registerCategoryTools(server: McpServer) {
                     .array(z.number())
                     .optional()
                     .describe(
-                        "Array of category_id to include in the category group."
+                        "Array of category_id to include in the category group.",
                     ),
                 new_categories: z
                     .array(z.string())
                     .optional()
                     .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group."
+                        "Array of strings representing new categories to create and subsequently include in the category group.",
                     ),
             }),
         },
@@ -493,15 +493,15 @@ export function registerCategoryTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify(requestBody),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to add to category group"
-                        )
+                            "Failed to add to category group",
+                        ),
                     );
                 }
 
@@ -516,7 +516,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to add to category group");
             }
-        }
+        },
     );
 
     server.tool(
@@ -528,7 +528,7 @@ export function registerCategoryTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe(
-                        "Id of the category or the category group to delete."
+                        "Id of the category or the category group to delete.",
                     ),
             }),
         },
@@ -544,15 +544,15 @@ export function registerCategoryTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to delete category"
-                        )
+                            "Failed to delete category",
+                        ),
                     );
                 }
 
@@ -567,7 +567,7 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to delete category");
             }
-        }
+        },
     );
 
     server.tool(
@@ -579,7 +579,7 @@ export function registerCategoryTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe(
-                        "Id of the category or the category group to delete."
+                        "Id of the category or the category group to delete.",
                     ),
             }),
         },
@@ -595,15 +595,15 @@ export function registerCategoryTools(server: McpServer) {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
                         },
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to force delete category"
-                        )
+                            "Failed to force delete category",
+                        ),
                     );
                 }
 
@@ -618,6 +618,6 @@ export function registerCategoryTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to force delete category");
             }
-        }
+        },
     );
 }

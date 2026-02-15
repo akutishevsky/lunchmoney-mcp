@@ -32,7 +32,11 @@ Every tool follows this structure:
 server.tool(
     "snake_case_name",
     "Description for AI",
-    { input: z.object({ /* Zod schema with .describe() on each field */ }) },
+    {
+        input: z.object({
+            /* Zod schema with .describe() on each field */
+        }),
+    },
     async ({ input }) => {
         const { baseUrl, lunchmoneyApiToken } = getConfig();
         const response = await fetch(`${baseUrl}/endpoint`, {
@@ -40,15 +44,20 @@ server.tool(
             headers: { Authorization: `Bearer ${lunchmoneyApiToken}` },
         });
         if (!response.ok) {
-            return { content: [{ type: "text", text: `Failed: ${response.statusText}` }] };
+            return {
+                content: [
+                    { type: "text", text: `Failed: ${response.statusText}` },
+                ],
+            };
         }
         const data = await response.json();
         return { content: [{ type: "text", text: JSON.stringify(data) }] };
-    }
+    },
 );
 ```
 
 Key conventions:
+
 - Tool names are `snake_case`; Zod `.describe()` is required on all parameters for AI discoverability
 - All responses are `{ content: [{ type: "text", text: JSON.stringify(...) }] }` — never markdown
 - GET requests with optional filters use `URLSearchParams`, only appending defined values

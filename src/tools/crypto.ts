@@ -24,8 +24,8 @@ export function registerCryptoTools(server: McpServer) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to get crypto assets"
-                        )
+                            "Failed to get crypto assets",
+                        ),
                     );
                 }
 
@@ -43,7 +43,7 @@ export function registerCryptoTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to get crypto assets");
             }
-        }
+        },
     );
 
     server.tool(
@@ -79,15 +79,15 @@ export function registerCryptoTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify(body),
-                    }
+                    },
                 );
 
                 if (!response.ok) {
                     return errorResponse(
                         await getErrorMessage(
                             response,
-                            "Failed to update crypto asset"
-                        )
+                            "Failed to update crypto asset",
+                        ),
                     );
                 }
 
@@ -104,6 +104,6 @@ export function registerCryptoTools(server: McpServer) {
             } catch (error) {
                 return catchError(error, "Failed to update crypto asset");
             }
-        }
+        },
     );
 }
