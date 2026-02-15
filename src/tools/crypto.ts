@@ -6,10 +6,15 @@ import { formatData } from "../format.js";
 import { Crypto } from "../types.js";
 
 export function registerCryptoTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_all_crypto",
-        "Get a list of all cryptocurrency assets associated with the user",
-        {},
+        {
+            description:
+                "Get a list of all cryptocurrency assets associated with the user",
+            annotations: {
+                readOnlyHint: true,
+            },
+        },
         async () => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
@@ -46,15 +51,23 @@ export function registerCryptoTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "update_manual_crypto",
-        "Update a manually-managed cryptocurrency asset balance",
         {
-            crypto_id: z.number().describe("ID of the crypto asset to update"),
-            balance: z
-                .number()
-                .optional()
-                .describe("Updated balance of the crypto asset"),
+            description:
+                "Update a manually-managed cryptocurrency asset balance",
+            inputSchema: {
+                crypto_id: z
+                    .number()
+                    .describe("ID of the crypto asset to update"),
+                balance: z
+                    .number()
+                    .optional()
+                    .describe("Updated balance of the crypto asset"),
+            },
+            annotations: {
+                idempotentHint: true,
+            },
         },
         async ({ crypto_id, balance }) => {
             try {

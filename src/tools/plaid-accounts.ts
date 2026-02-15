@@ -5,10 +5,15 @@ import { formatData } from "../format.js";
 import { PlaidAccount } from "../types.js";
 
 export function registerPlaidAccountTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_all_plaid_accounts",
-        "Get a list of all Plaid accounts associated with the user",
-        {},
+        {
+            description:
+                "Get a list of all Plaid accounts associated with the user",
+            annotations: {
+                readOnlyHint: true,
+            },
+        },
         async () => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
@@ -45,10 +50,15 @@ export function registerPlaidAccountTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "trigger_plaid_fetch",
-        "Trigger a fetch of latest data from Plaid (Experimental). Note that fetching may take up to 5 minutes.",
-        {},
+        {
+            description:
+                "Trigger a fetch of latest data from Plaid (Experimental). Note that fetching may take up to 5 minutes.",
+            annotations: {
+                openWorldHint: true,
+            },
+        },
         async () => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();

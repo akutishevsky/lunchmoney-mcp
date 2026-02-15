@@ -6,24 +6,32 @@ import { formatData } from "../format.js";
 import { Budget } from "../types.js";
 
 export function registerBudgetTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_budget_summary",
-        "Get budget summary for a specific date range. The budgeted and spending amounts will be broken down by month.",
         {
-            start_date: z
-                .string()
-                .describe(
-                    "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
-                ),
-            end_date: z
-                .string()
-                .describe(
-                    "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
-                ),
-            currency: z
-                .string()
-                .optional()
-                .describe("Currency for budget (defaults to primary currency)"),
+            description:
+                "Get budget summary for a specific date range. The budgeted and spending amounts will be broken down by month.",
+            inputSchema: {
+                start_date: z
+                    .string()
+                    .describe(
+                        "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
+                    ),
+                end_date: z
+                    .string()
+                    .describe(
+                        "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
+                    ),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Currency for budget (defaults to primary currency)",
+                    ),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
         },
         async ({ start_date, end_date, currency }) => {
             try {
@@ -69,19 +77,27 @@ export function registerBudgetTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "upsert_budget",
-        "Create or update a budget for a specific category and month",
         {
-            start_date: z
-                .string()
-                .describe("Budget month start date in YYYY-MM-DD format"),
-            category_id: z.number().describe("Category ID for the budget"),
-            amount: z.number().describe("Budget amount"),
-            currency: z
-                .string()
-                .optional()
-                .describe("Currency for budget (defaults to primary currency)"),
+            description:
+                "Create or update a budget for a specific category and month",
+            inputSchema: {
+                start_date: z
+                    .string()
+                    .describe("Budget month start date in YYYY-MM-DD format"),
+                category_id: z.number().describe("Category ID for the budget"),
+                amount: z.number().describe("Budget amount"),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Currency for budget (defaults to primary currency)",
+                    ),
+            },
+            annotations: {
+                idempotentHint: true,
+            },
         },
         async ({ start_date, category_id, amount, currency }) => {
             try {
@@ -131,16 +147,21 @@ export function registerBudgetTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "remove_budget",
-        "Remove a budget for a specific category and month",
         {
-            start_date: z
-                .string()
-                .describe("Budget month start date in YYYY-MM-DD format"),
-            category_id: z
-                .number()
-                .describe("Category ID for the budget to remove"),
+            description: "Remove a budget for a specific category and month",
+            inputSchema: {
+                start_date: z
+                    .string()
+                    .describe("Budget month start date in YYYY-MM-DD format"),
+                category_id: z
+                    .number()
+                    .describe("Category ID for the budget to remove"),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
         },
         async ({ start_date, category_id }) => {
             try {

@@ -6,10 +6,15 @@ import { formatData } from "../format.js";
 import { Asset } from "../types.js";
 
 export function registerAssetTools(server: McpServer) {
-    server.tool(
+    server.registerTool(
         "get_all_assets",
-        "Get a list of all manually-managed assets associated with the user",
-        {},
+        {
+            description:
+                "Get a list of all manually-managed assets associated with the user",
+            annotations: {
+                readOnlyHint: true,
+            },
+        },
         async () => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
@@ -43,60 +48,67 @@ export function registerAssetTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "create_asset",
-        "Create a new manually-managed asset",
         {
-            type_name: z
-                .enum([
-                    "cash",
-                    "credit",
-                    "investment",
-                    "real estate",
-                    "loan",
-                    "vehicle",
-                    "cryptocurrency",
-                    "employee compensation",
-                    "other liability",
-                    "other asset",
-                ])
-                .describe("Primary type of the asset"),
-            subtype_name: z
-                .string()
-                .optional()
-                .describe(
-                    "Optional subtype (e.g., retirement, checking, savings)",
-                ),
-            name: z.string().describe("Name of the asset"),
-            display_name: z
-                .string()
-                .optional()
-                .describe("Display name of the asset (defaults to name)"),
-            balance: z.number().describe("Current balance of the asset"),
-            balance_as_of: z
-                .string()
-                .optional()
-                .describe("Date/time the balance is as of in ISO 8601 format"),
-            currency: z
-                .string()
-                .optional()
-                .describe(
-                    "Three-letter currency code (defaults to primary currency)",
-                ),
-            institution_name: z
-                .string()
-                .optional()
-                .describe("Name of the institution holding the asset"),
-            closed_on: z
-                .string()
-                .optional()
-                .describe("Date the asset was closed in YYYY-MM-DD format"),
-            exclude_transactions: z
-                .boolean()
-                .optional()
-                .describe(
-                    "Whether to exclude this asset from transaction options",
-                ),
+            description: "Create a new manually-managed asset",
+            inputSchema: {
+                type_name: z
+                    .enum([
+                        "cash",
+                        "credit",
+                        "investment",
+                        "real estate",
+                        "loan",
+                        "vehicle",
+                        "cryptocurrency",
+                        "employee compensation",
+                        "other liability",
+                        "other asset",
+                    ])
+                    .describe("Primary type of the asset"),
+                subtype_name: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Optional subtype (e.g., retirement, checking, savings)",
+                    ),
+                name: z.string().describe("Name of the asset"),
+                display_name: z
+                    .string()
+                    .optional()
+                    .describe("Display name of the asset (defaults to name)"),
+                balance: z.number().describe("Current balance of the asset"),
+                balance_as_of: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Date/time the balance is as of in ISO 8601 format",
+                    ),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Three-letter currency code (defaults to primary currency)",
+                    ),
+                institution_name: z
+                    .string()
+                    .optional()
+                    .describe("Name of the institution holding the asset"),
+                closed_on: z
+                    .string()
+                    .optional()
+                    .describe("Date the asset was closed in YYYY-MM-DD format"),
+                exclude_transactions: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Whether to exclude this asset from transaction options",
+                    ),
+            },
+            annotations: {
+                idempotentHint: false,
+            },
         },
         async ({
             type_name,
@@ -162,63 +174,70 @@ export function registerAssetTools(server: McpServer) {
         },
     );
 
-    server.tool(
+    server.registerTool(
         "update_asset",
-        "Update an existing manually-managed asset",
         {
-            asset_id: z.number().describe("ID of the asset to update"),
-            type_name: z
-                .enum([
-                    "cash",
-                    "credit",
-                    "investment",
-                    "real estate",
-                    "loan",
-                    "vehicle",
-                    "cryptocurrency",
-                    "employee compensation",
-                    "other liability",
-                    "other asset",
-                ])
-                .optional()
-                .describe("Primary type of the asset"),
-            subtype_name: z
-                .string()
-                .optional()
-                .describe(
-                    "Optional subtype (e.g., retirement, checking, savings)",
-                ),
-            name: z.string().optional().describe("Name of the asset"),
-            display_name: z
-                .string()
-                .optional()
-                .describe("Display name of the asset"),
-            balance: z
-                .number()
-                .optional()
-                .describe("Current balance of the asset"),
-            balance_as_of: z
-                .string()
-                .optional()
-                .describe("Date/time the balance is as of in ISO 8601 format"),
-            currency: z
-                .string()
-                .optional()
-                .describe("Three-letter currency code"),
-            institution_name: z
-                .string()
-                .optional()
-                .describe("Name of the institution holding the asset"),
-            closed_on: z
-                .string()
-                .optional()
-                .describe("Date the asset was closed in YYYY-MM-DD format"),
-            exclude_transactions: z
-                .boolean()
-                .optional()
-                .describe(
-                    "Whether to exclude this asset from transaction options",
-                ),
+            description: "Update an existing manually-managed asset",
+            inputSchema: {
+                asset_id: z.number().describe("ID of the asset to update"),
+                type_name: z
+                    .enum([
+                        "cash",
+                        "credit",
+                        "investment",
+                        "real estate",
+                        "loan",
+                        "vehicle",
+                        "cryptocurrency",
+                        "employee compensation",
+                        "other liability",
+                        "other asset",
+                    ])
+                    .optional()
+                    .describe("Primary type of the asset"),
+                subtype_name: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Optional subtype (e.g., retirement, checking, savings)",
+                    ),
+                name: z.string().optional().describe("Name of the asset"),
+                display_name: z
+                    .string()
+                    .optional()
+                    .describe("Display name of the asset"),
+                balance: z
+                    .number()
+                    .optional()
+                    .describe("Current balance of the asset"),
+                balance_as_of: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Date/time the balance is as of in ISO 8601 format",
+                    ),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe("Three-letter currency code"),
+                institution_name: z
+                    .string()
+                    .optional()
+                    .describe("Name of the institution holding the asset"),
+                closed_on: z
+                    .string()
+                    .optional()
+                    .describe("Date the asset was closed in YYYY-MM-DD format"),
+                exclude_transactions: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Whether to exclude this asset from transaction options",
+                    ),
+            },
+            annotations: {
+                idempotentHint: true,
+            },
         },
         async ({
             asset_id,
