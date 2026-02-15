@@ -258,6 +258,12 @@ export function registerTransactionTools(server: McpServer) {
                                 .array(z.number())
                                 .optional()
                                 .describe("Array of tag IDs"),
+                            plaid_account_id: z
+                                .number()
+                                .optional()
+                                .describe(
+                                    "Plaid account ID to associate with this transaction",
+                                ),
                         }),
                     )
                     .describe("Array of transactions to create"),
@@ -404,6 +410,12 @@ export function registerTransactionTools(server: McpServer) {
                             .array(z.number())
                             .optional()
                             .describe("Array of tag IDs"),
+                        plaid_account_id: z
+                            .number()
+                            .optional()
+                            .describe(
+                                "Plaid account ID to associate with this transaction",
+                            ),
                     })
                     .describe("Transaction data to update"),
                 debit_as_negative: z
