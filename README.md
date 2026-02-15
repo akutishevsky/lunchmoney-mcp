@@ -12,6 +12,20 @@ A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lu
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp/badge" alt="LunchMoney Server MCP server" />
 </a>
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Usage](#usage)
+    - [Installation Options](#installation-options)
+    - [As a standalone MCP server](#as-a-standalone-mcp-server)
+- [Example Prompts](#example-prompts)
+- [Available Tools](#available-tools)
+- [Development](#development)
+- [API Reference](#api-reference)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Overview
 
 This MCP server enables AI assistants and other MCP clients to interact with LunchMoney data, allowing for automated financial insights, transaction management, budgeting, and more.
