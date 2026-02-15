@@ -11,6 +11,7 @@ import { registerBudgetTools } from "./tools/budgets.js";
 import { registerAssetTools } from "./tools/assets.js";
 import { registerPlaidAccountTools } from "./tools/plaid-accounts.js";
 import { registerCryptoTools } from "./tools/crypto.js";
+import { registerPrompts } from "./prompts.js";
 
 const server = new McpServer({
     name: "lunchmoney-mcp",
@@ -26,6 +27,7 @@ registerBudgetTools(server);
 registerAssetTools(server);
 registerPlaidAccountTools(server);
 registerCryptoTools(server);
+registerPrompts(server);
 
 (async () => {
     try {
