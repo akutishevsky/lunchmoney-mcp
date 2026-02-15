@@ -83,7 +83,7 @@ export interface Transaction {
     institution_name: string | null;
     plaid_account_type: string | null;
     plaid_account_subtype: string | null;
-    plaid_metadata?: any | null;
+    plaid_metadata?: Record<string, unknown> | null;
     type: string | null;
     subtype: string | null;
     fees: string | null;
@@ -127,7 +127,7 @@ export interface RecurringItem {
     exclude_from_totals: boolean;
     granularity: string;
     quantity: number | null;
-    occurrences: any;
+    occurrences: Record<string, unknown> | null;
     transactions_within_range: SummarizedTransaction[] | null;
     missing_dates_within_range: string[] | null;
     date: string | null;
@@ -165,7 +165,7 @@ export interface Budget {
     config: BudgetConfig | null;
     order: number;
     archived: boolean;
-    recurring: any | null;
+    recurring: Record<string, unknown> | null;
 }
 
 export interface Asset {
