@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
+import { getErrorMessage, errorResponse, catchError } from "../errors.js";
 import { Transaction } from "../types.js";
 
 export function registerTransactionTools(server: McpServer) {
@@ -52,71 +53,76 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const params = new URLSearchParams({
-                start_date: input.start_date,
-                end_date: input.end_date,
-            });
+                const params = new URLSearchParams({
+                    start_date: input.start_date,
+                    end_date: input.end_date,
+                });
 
-            if (input.tag_id !== undefined)
-                params.append("tag_id", input.tag_id.toString());
-            if (input.recurring_id !== undefined)
-                params.append("recurring_id", input.recurring_id.toString());
-            if (input.plaid_account_id !== undefined)
-                params.append(
-                    "plaid_account_id",
-                    input.plaid_account_id.toString()
+                if (input.tag_id !== undefined)
+                    params.append("tag_id", input.tag_id.toString());
+                if (input.recurring_id !== undefined)
+                    params.append("recurring_id", input.recurring_id.toString());
+                if (input.plaid_account_id !== undefined)
+                    params.append(
+                        "plaid_account_id",
+                        input.plaid_account_id.toString()
+                    );
+                if (input.category_id !== undefined)
+                    params.append("category_id", input.category_id.toString());
+                if (input.asset_id !== undefined)
+                    params.append("asset_id", input.asset_id.toString());
+                if (input.is_group !== undefined)
+                    params.append("is_group", input.is_group.toString());
+                if (input.status !== undefined)
+                    params.append("status", input.status);
+                if (input.offset !== undefined)
+                    params.append("offset", input.offset.toString());
+                if (input.limit !== undefined)
+                    params.append("limit", input.limit.toString());
+                if (input.debit_as_negative !== undefined)
+                    params.append(
+                        "debit_as_negative",
+                        input.debit_as_negative.toString()
+                    );
+
+                const response = await fetch(
+                    `${baseUrl}/transactions?${params}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
                 );
-            if (input.category_id !== undefined)
-                params.append("category_id", input.category_id.toString());
-            if (input.asset_id !== undefined)
-                params.append("asset_id", input.asset_id.toString());
-            if (input.is_group !== undefined)
-                params.append("is_group", input.is_group.toString());
-            if (input.status !== undefined)
-                params.append("status", input.status);
-            if (input.offset !== undefined)
-                params.append("offset", input.offset.toString());
-            if (input.limit !== undefined)
-                params.append("limit", input.limit.toString());
-            if (input.debit_as_negative !== undefined)
-                params.append(
-                    "debit_as_negative",
-                    input.debit_as_negative.toString()
-                );
 
-            const response = await fetch(`${baseUrl}/transactions?${params}`, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get transactions"
+                        )
+                    );
+                }
 
-            if (!response.ok) {
+                const data = await response.json();
+                const transactions: Transaction[] = data.transactions;
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get transactions: ${response.statusText}`,
+                            text: JSON.stringify({
+                                transactions,
+                                has_more: data.has_more,
+                            }),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get transactions");
             }
-
-            const data = await response.json();
-            const transactions: Transaction[] = data.transactions;
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify({
-                            transactions,
-                            has_more: data.has_more,
-                        }),
-                    },
-                ],
-            };
         }
     );
 
@@ -135,47 +141,49 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const params = new URLSearchParams();
-            if (input.debit_as_negative !== undefined) {
-                params.append(
-                    "debit_as_negative",
-                    input.debit_as_negative.toString()
-                );
-            }
+                const params = new URLSearchParams();
+                if (input.debit_as_negative !== undefined) {
+                    params.append(
+                        "debit_as_negative",
+                        input.debit_as_negative.toString()
+                    );
+                }
 
-            const url = params.toString()
-                ? `${baseUrl}/transactions/${input.transaction_id}?${params}`
-                : `${baseUrl}/transactions/${input.transaction_id}`;
+                const url = params.toString()
+                    ? `${baseUrl}/transactions/${input.transaction_id}?${params}`
+                    : `${baseUrl}/transactions/${input.transaction_id}`;
 
-            const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+                const response = await fetch(url, {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                });
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get transaction"
+                        )
+                    );
+                }
+
+                const transaction: Transaction = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get transaction: ${response.statusText}`,
+                            text: JSON.stringify(transaction),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get transaction");
             }
-
-            const transaction: Transaction = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(transaction),
-                    },
-                ],
-            };
         }
     );
 
@@ -262,53 +270,55 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const body: any = {
-                transactions: input.transactions,
-            };
+                const body: any = {
+                    transactions: input.transactions,
+                };
 
-            if (input.apply_rules !== undefined)
-                body.apply_rules = input.apply_rules;
-            if (input.skip_duplicates !== undefined)
-                body.skip_duplicates = input.skip_duplicates;
-            if (input.check_for_recurring !== undefined)
-                body.check_for_recurring = input.check_for_recurring;
-            if (input.debit_as_negative !== undefined)
-                body.debit_as_negative = input.debit_as_negative;
-            if (input.skip_balance_update !== undefined)
-                body.skip_balance_update = input.skip_balance_update;
+                if (input.apply_rules !== undefined)
+                    body.apply_rules = input.apply_rules;
+                if (input.skip_duplicates !== undefined)
+                    body.skip_duplicates = input.skip_duplicates;
+                if (input.check_for_recurring !== undefined)
+                    body.check_for_recurring = input.check_for_recurring;
+                if (input.debit_as_negative !== undefined)
+                    body.debit_as_negative = input.debit_as_negative;
+                if (input.skip_balance_update !== undefined)
+                    body.skip_balance_update = input.skip_balance_update;
 
-            const response = await fetch(`${baseUrl}/transactions`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(body),
-            });
+                const response = await fetch(`${baseUrl}/transactions`, {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(body),
+                });
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to create transactions"
+                        )
+                    );
+                }
+
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to create transactions: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to create transactions");
             }
-
-            const result = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 
@@ -380,50 +390,52 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const body: any = {
-                transaction: input.transaction,
-            };
+                const body: any = {
+                    transaction: input.transaction,
+                };
 
-            if (input.debit_as_negative !== undefined)
-                body.debit_as_negative = input.debit_as_negative;
-            if (input.skip_balance_update !== undefined)
-                body.skip_balance_update = input.skip_balance_update;
+                if (input.debit_as_negative !== undefined)
+                    body.debit_as_negative = input.debit_as_negative;
+                if (input.skip_balance_update !== undefined)
+                    body.skip_balance_update = input.skip_balance_update;
 
-            const response = await fetch(
-                `${baseUrl}/transactions/${input.transaction_id}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(body),
+                const response = await fetch(
+                    `${baseUrl}/transactions/${input.transaction_id}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(body),
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to update transaction"
+                        )
+                    );
                 }
-            );
 
-            if (!response.ok) {
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to update transaction: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to update transaction");
             }
-
-            const result = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 
@@ -442,41 +454,46 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(`${baseUrl}/transactions/unsplit`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    parent_ids: input.parent_ids,
-                    remove_parents: input.remove_parents,
-                }),
-            });
+                const response = await fetch(
+                    `${baseUrl}/transactions/unsplit`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            parent_ids: input.parent_ids,
+                            remove_parents: input.remove_parents,
+                        }),
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to unsplit transactions"
+                        )
+                    );
+                }
+
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to unsplit transactions: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to unsplit transactions");
             }
-
-            const result = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 
@@ -491,38 +508,40 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(
-                `${baseUrl}/transactions/group/${input.transaction_id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
+                const response = await fetch(
+                    `${baseUrl}/transactions/group/${input.transaction_id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get transaction group"
+                        )
+                    );
                 }
-            );
 
-            if (!response.ok) {
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get transaction group: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get transaction group");
             }
-
-            const result = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 
@@ -548,38 +567,43 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(`${baseUrl}/transactions/group`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(input),
-            });
+                const response = await fetch(
+                    `${baseUrl}/transactions/group`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(input),
+                    }
+                );
 
-            if (!response.ok) {
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to create transaction group"
+                        )
+                    );
+                }
+
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to create transaction group: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to create transaction group");
             }
-
-            const result = await response.json();
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 
@@ -594,37 +618,42 @@ export function registerTransactionTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            const response = await fetch(
-                `${baseUrl}/transactions/group/${input.transaction_id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
+                const response = await fetch(
+                    `${baseUrl}/transactions/group/${input.transaction_id}`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to delete transaction group"
+                        )
+                    );
                 }
-            );
 
-            if (!response.ok) {
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to delete transaction group: ${response.statusText}`,
+                            text: "Transaction group deleted successfully",
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(
+                    error,
+                    "Failed to delete transaction group"
+                );
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "Transaction group deleted successfully",
-                    },
-                ],
-            };
         }
     );
 }

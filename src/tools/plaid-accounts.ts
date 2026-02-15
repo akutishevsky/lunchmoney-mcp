@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
+import { getErrorMessage, errorResponse, catchError } from "../errors.js";
 import { PlaidAccount } from "../types.js";
 
 export function registerPlaidAccountTools(server: McpServer) {
@@ -8,36 +9,38 @@ export function registerPlaidAccountTools(server: McpServer) {
         "Get a list of all Plaid accounts associated with the user",
         {},
         async () => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
-            const response = await fetch(`${baseUrl}/plaid_accounts`, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            if (!response.ok) {
+                const response = await fetch(`${baseUrl}/plaid_accounts`, {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get Plaid accounts"
+                        )
+                    );
+                }
+
+                const data = await response.json();
+                const plaidAccounts: PlaidAccount[] = data.plaid_accounts;
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get Plaid accounts: ${response.statusText}`,
+                            text: JSON.stringify(plaidAccounts),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get Plaid accounts");
             }
-
-            const data = await response.json();
-            const plaidAccounts: PlaidAccount[] = data.plaid_accounts;
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(plaidAccounts),
-                    },
-                ],
-            };
         }
     );
 
@@ -46,34 +49,39 @@ export function registerPlaidAccountTools(server: McpServer) {
         "Trigger a fetch of latest data from Plaid (Experimental). Note that fetching may take up to 5 minutes.",
         {},
         async () => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
-            const response = await fetch(`${baseUrl}/plaid_accounts/fetch`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            if (!response.ok) {
+                const response = await fetch(
+                    `${baseUrl}/plaid_accounts/fetch`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to trigger Plaid fetch"
+                        )
+                    );
+                }
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to trigger Plaid fetch: ${response.statusText}`,
+                            text: "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to trigger Plaid fetch");
             }
-
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
-                    },
-                ],
-            };
         }
     );
 }

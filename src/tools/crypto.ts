@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
+import { getErrorMessage, errorResponse, catchError } from "../errors.js";
 import { Crypto } from "../types.js";
 
 export function registerCryptoTools(server: McpServer) {
@@ -9,36 +10,38 @@ export function registerCryptoTools(server: McpServer) {
         "Get a list of all cryptocurrency assets associated with the user",
         {},
         async () => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
-            const response = await fetch(`${baseUrl}/crypto`, {
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                },
-            });
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            if (!response.ok) {
+                const response = await fetch(`${baseUrl}/crypto`, {
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to get crypto assets"
+                        )
+                    );
+                }
+
+                const data = await response.json();
+                const cryptoAssets: Crypto[] = data.crypto;
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to get crypto assets: ${response.statusText}`,
+                            text: JSON.stringify(cryptoAssets),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to get crypto assets");
             }
-
-            const data = await response.json();
-            const cryptoAssets: Crypto[] = data.crypto;
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(cryptoAssets),
-                    },
-                ],
-            };
         }
     );
 
@@ -57,44 +60,49 @@ export function registerCryptoTools(server: McpServer) {
             }),
         },
         async ({ input }) => {
-            const { baseUrl, lunchmoneyApiToken } = getConfig();
-            
-            const body: any = {};
-            
-            if (input.balance !== undefined) {
-                body.balance = input.balance.toString();
-            }
-            
-            const response = await fetch(`${baseUrl}/crypto/manual/${input.crypto_id}`, {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(body),
-            });
+            try {
+                const { baseUrl, lunchmoneyApiToken } = getConfig();
 
-            if (!response.ok) {
+                const body: any = {};
+
+                if (input.balance !== undefined) {
+                    body.balance = input.balance.toString();
+                }
+
+                const response = await fetch(
+                    `${baseUrl}/crypto/manual/${input.crypto_id}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            Authorization: `Bearer ${lunchmoneyApiToken}`,
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(body),
+                    }
+                );
+
+                if (!response.ok) {
+                    return errorResponse(
+                        await getErrorMessage(
+                            response,
+                            "Failed to update crypto asset"
+                        )
+                    );
+                }
+
+                const result = await response.json();
+
                 return {
                     content: [
                         {
                             type: "text",
-                            text: `Failed to update crypto asset: ${response.statusText}`,
+                            text: JSON.stringify(result),
                         },
                     ],
                 };
+            } catch (error) {
+                return catchError(error, "Failed to update crypto asset");
             }
-
-            const result = await response.json();
-            
-            return {
-                content: [
-                    {
-                        type: "text",
-                        text: JSON.stringify(result),
-                    },
-                ],
-            };
         }
     );
 }
