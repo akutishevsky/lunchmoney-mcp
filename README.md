@@ -1,5 +1,11 @@
 # LunchMoney MCP Server
 
+[![npm version](https://img.shields.io/npm/v/@akutishevsky/lunchmoney-mcp)](https://www.npmjs.com/package/@akutishevsky/lunchmoney-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/@akutishevsky/lunchmoney-mcp)](https://www.npmjs.com/package/@akutishevsky/lunchmoney-mcp)
+[![GitHub downloads](https://img.shields.io/github/downloads/akutishevsky/lunchmoney-mcp/total)](https://github.com/akutishevsky/lunchmoney-mcp/releases)
+[![license](https://img.shields.io/npm/l/@akutishevsky/lunchmoney-mcp)](https://github.com/akutishevsky/lunchmoney-mcp/blob/main/LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
+
 A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lunchmoney.app/), providing programmatic access to personal finance management through LunchMoney's API. Also available as an MCP Bundle (.mcpb) for easy installation in Claude Desktop.
 
 <a href="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp">
