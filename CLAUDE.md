@@ -9,7 +9,7 @@ MCP (Model Context Protocol) server for the LunchMoney personal finance API. Pro
 ## Commands
 
 - `npm run build` — compile TypeScript and chmod the entry point
-- `npm run build:dxt` — build + package as `.dxt` for Claude Desktop
+- `npm run build:mcpb` — build + package as `.mcpb` for Claude Desktop
 - `npm run dev` — run with MCP Inspector (set `LUNCHMONEY_API_TOKEN` in the script first)
 
 No test suite exists; test via `npm run dev` with the MCP Inspector against a real LunchMoney account.
