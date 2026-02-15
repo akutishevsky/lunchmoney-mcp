@@ -544,7 +544,6 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 category_id: z
                     .number()
-                    .optional()
                     .describe(
                         "Id of the category or the category group to delete.",
                     ),
@@ -598,7 +597,6 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 category_id: z
                     .number()
-                    .optional()
                     .describe(
                         "Id of the category or the category group to delete.",
                     ),
