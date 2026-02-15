@@ -29,4 +29,4 @@ const getConfig = (): Config => {
     return config;
 };
 
-export { Config, initializeConfig, getConfig };
+export { type Config, initializeConfig, getConfig };

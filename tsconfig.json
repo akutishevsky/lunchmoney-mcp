@@ -1,10 +1,12 @@
 {
     "compilerOptions": {
         "target": "ES2022",
-        "module": "Node16",
-        "moduleResolution": "Node16",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "outDir": "./build",
         "rootDir": "./src",
+        "isolatedModules": true,
+        "sourceMap": true,
         "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
