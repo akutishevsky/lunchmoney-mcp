@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { PlaidAccount } from "../types.js";
 
 export function registerPlaidAccountTools(server: McpServer) {
@@ -34,7 +35,7 @@ export function registerPlaidAccountTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(plaidAccounts),
+                            text: formatData(plaidAccounts),
                         },
                     ],
                 };

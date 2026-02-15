@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { RecurringItem } from "../types.js";
 
 export function registerRecurringItemsTools(server: McpServer) {
@@ -66,7 +67,7 @@ export function registerRecurringItemsTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(recurringItems),
+                            text: formatData(recurringItems),
                         },
                     ],
                 };

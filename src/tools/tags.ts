@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { getConfig } from "../config.js";
 import { getErrorMessage, errorResponse, catchError } from "../errors.js";
+import { formatData } from "../format.js";
 import { Tag } from "../types.js";
 
 export function registerTagTools(server: McpServer) {
@@ -32,7 +33,7 @@ export function registerTagTools(server: McpServer) {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(tags),
+                            text: formatData(tags),
                         },
                     ],
                 };
