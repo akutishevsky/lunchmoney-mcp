@@ -199,7 +199,7 @@ export function registerTransactionTools(server: McpServer) {
                                 )
                                 .describe("Date in YYYY-MM-DD format"),
                             payee: z.string().describe("Payee name"),
-                            amount: z
+                            amount: z.coerce
                                 .string()
                                 .describe(
                                     "Amount as string with up to 4 decimal places",
@@ -340,7 +340,7 @@ export function registerTransactionTools(server: McpServer) {
                             .optional()
                             .describe("Date in YYYY-MM-DD format"),
                         payee: z.string().optional().describe("Payee name"),
-                        amount: z
+                        amount: z.coerce
                             .string()
                             .optional()
                             .describe(
