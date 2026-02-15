@@ -11,8 +11,11 @@ MCP (Model Context Protocol) server for the LunchMoney personal finance API. Pro
 - `npm run build` — compile TypeScript and chmod the entry point
 - `npm run build:mcpb` — build + package as `.mcpb` for Claude Desktop
 - `npm run dev` — run with MCP Inspector (set `LUNCHMONEY_API_TOKEN` in the script first)
+- `npm run format` — run Prettier on the entire codebase
 
 No test suite exists; test via `npm run dev` with the MCP Inspector against a real LunchMoney account.
+
+A husky pre-commit hook runs `npm run format` automatically before every commit.
 
 ## Architecture
 
@@ -24,11 +27,15 @@ No test suite exists; test via `npm run dev` with the MCP Inspector against a re
 
 **Tools:** `src/tools/` — one file per domain. Each exports a `register[Domain]Tools(server: McpServer)` function called from `index.ts`.
 
+**Response format:** `src/format.ts` — uses [TOON](https://github.com/nicfontaine/toon) encoding instead of JSON for tool responses. TOON is a compact text format that reduces token count by stripping quotes and braces. Null fields are stripped before encoding to further reduce payload size.
+
 ## Tool Implementation Pattern
 
 Every tool follows this structure:
 
 ```typescript
+import { formatData } from "../format.js";
+
 server.tool(
     "snake_case_name",
     "Description for AI",
@@ -51,7 +58,7 @@ server.tool(
             };
         }
         const data = await response.json();
-        return { content: [{ type: "text", text: JSON.stringify(data) }] };
+        return { content: [{ type: "text", text: formatData(data) }] };
     },
 );
 ```
@@ -59,7 +66,7 @@ server.tool(
 Key conventions:
 
 - Tool names are `snake_case`; Zod `.describe()` is required on all parameters for AI discoverability
-- All responses are `{ content: [{ type: "text", text: JSON.stringify(...) }] }` — never markdown
+- All responses use `formatData()` (TOON encoding) — never raw JSON or markdown
 - GET requests with optional filters use `URLSearchParams`, only appending defined values
 - Tools with no parameters pass `{}` as the input schema
 

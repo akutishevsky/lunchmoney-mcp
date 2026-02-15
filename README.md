@@ -28,6 +28,7 @@ This MCP server enables AI assistants and other MCP clients to interact with Lun
 
 - Full integration with LunchMoney API v1
 - Type-safe implementation with TypeScript and Zod validation
+- Token-efficient responses using [TOON](https://github.com/nicfontaine/toon) encoding instead of JSON, reducing token usage in AI conversations
 - Modular architecture for easy extension
 - Standard MCP server implementation using stdio transport
 
