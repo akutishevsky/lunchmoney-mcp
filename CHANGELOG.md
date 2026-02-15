@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-02-15
+
+### Added
+
+- Support for `plaid_account_id` parameter in `create_transactions` and `update_transaction` tools to associate transactions with Plaid accounts
+
+### Changed
+
+- Updated copyright year to 2026
+- Enhanced README with table of contents
+
 ## [1.2.0] - 2026-02-15
 
 ### Added

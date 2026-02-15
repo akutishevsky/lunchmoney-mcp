@@ -15,7 +15,7 @@ import { registerPrompts } from "./prompts.js";
 
 const server = new McpServer({
     name: "lunchmoney-mcp",
-    version: "1.2.0",
+    version: "1.3.0",
 });
 
 registerUserTools(server);
