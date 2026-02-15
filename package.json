@@ -7,14 +7,14 @@
         "lunchmoney-mcp": "./build/index.js"
     },
     "scripts": {
-        "build": "tsc && chmod 755 build/index.js",
         "build:mcpb": "npm run build && mkdir -p dist && npx @anthropic-ai/mcpb pack . dist/lunchmoney.mcpb",
-        "prepublish:changelog": "claude -p 'update @CHANGELOG.md and update package versions everywhere where needed'",
-        "prepublishOnly": "npm run build:mcpb",
+        "build": "tsc && chmod 755 build/index.js",
         "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js",
-        "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
         "format": "prettier --write .",
-        "prepare": "husky"
+        "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
+        "prepare": "husky",
+        "prepublish:changelog": "claude -p 'update @CHANGELOG.md and update package versions everywhere where needed'",
+        "prepublishOnly": "npm run build:mcpb"
     },
     "files": [
         "build"
