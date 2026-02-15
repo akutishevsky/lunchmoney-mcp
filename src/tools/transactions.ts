@@ -10,86 +10,89 @@ export function registerTransactionTools(server: McpServer) {
         "get_transactions",
         "Retrieve transactions within a date range with optional filters",
         {
-            input: z.object({
-                start_date: z
-                    .string()
-                    .describe("Start date in YYYY-MM-DD format"),
-                end_date: z.string().describe("End date in YYYY-MM-DD format"),
-                tag_id: z.number().optional().describe("Filter by tag ID"),
-                recurring_id: z
-                    .number()
-                    .optional()
-                    .describe("Filter by recurring expense ID"),
-                plaid_account_id: z
-                    .number()
-                    .optional()
-                    .describe("Filter by Plaid account ID"),
-                category_id: z
-                    .number()
-                    .optional()
-                    .describe("Filter by category ID"),
-                asset_id: z.number().optional().describe("Filter by asset ID"),
-                is_group: z
-                    .boolean()
-                    .optional()
-                    .describe("Filter by transaction groups"),
-                status: z
-                    .string()
-                    .optional()
-                    .describe("Filter by status: cleared, uncleared, pending"),
-                offset: z
-                    .number()
-                    .optional()
-                    .describe("Number of transactions to skip"),
-                limit: z
-                    .number()
-                    .optional()
-                    .describe(
-                        "Maximum number of transactions to return (max 500)",
-                    ),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe("Pass true to return debit amounts as negative"),
-            }),
+            start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+            end_date: z.string().describe("End date in YYYY-MM-DD format"),
+            tag_id: z.number().optional().describe("Filter by tag ID"),
+            recurring_id: z
+                .number()
+                .optional()
+                .describe("Filter by recurring expense ID"),
+            plaid_account_id: z
+                .number()
+                .optional()
+                .describe("Filter by Plaid account ID"),
+            category_id: z
+                .number()
+                .optional()
+                .describe("Filter by category ID"),
+            asset_id: z.number().optional().describe("Filter by asset ID"),
+            is_group: z
+                .boolean()
+                .optional()
+                .describe("Filter by transaction groups"),
+            status: z
+                .string()
+                .optional()
+                .describe("Filter by status: cleared, uncleared, pending"),
+            offset: z
+                .number()
+                .optional()
+                .describe("Number of transactions to skip"),
+            limit: z
+                .number()
+                .optional()
+                .describe("Maximum number of transactions to return (max 500)"),
+            debit_as_negative: z
+                .boolean()
+                .optional()
+                .describe("Pass true to return debit amounts as negative"),
         },
-        async ({ input }) => {
+        async ({
+            start_date,
+            end_date,
+            tag_id,
+            recurring_id,
+            plaid_account_id,
+            category_id,
+            asset_id,
+            is_group,
+            status,
+            offset,
+            limit,
+            debit_as_negative,
+        }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const params = new URLSearchParams({
-                    start_date: input.start_date,
-                    end_date: input.end_date,
+                    start_date,
+                    end_date,
                 });
 
-                if (input.tag_id !== undefined)
-                    params.append("tag_id", input.tag_id.toString());
-                if (input.recurring_id !== undefined)
-                    params.append(
-                        "recurring_id",
-                        input.recurring_id.toString(),
-                    );
-                if (input.plaid_account_id !== undefined)
+                if (tag_id !== undefined)
+                    params.append("tag_id", tag_id.toString());
+                if (recurring_id !== undefined)
+                    params.append("recurring_id", recurring_id.toString());
+                if (plaid_account_id !== undefined)
                     params.append(
                         "plaid_account_id",
-                        input.plaid_account_id.toString(),
+                        plaid_account_id.toString(),
                     );
-                if (input.category_id !== undefined)
-                    params.append("category_id", input.category_id.toString());
-                if (input.asset_id !== undefined)
-                    params.append("asset_id", input.asset_id.toString());
-                if (input.is_group !== undefined)
-                    params.append("is_group", input.is_group.toString());
-                if (input.status !== undefined)
-                    params.append("status", input.status);
-                if (input.offset !== undefined)
-                    params.append("offset", input.offset.toString());
-                if (input.limit !== undefined)
-                    params.append("limit", input.limit.toString());
-                if (input.debit_as_negative !== undefined)
+                if (category_id !== undefined)
+                    params.append("category_id", category_id.toString());
+                if (asset_id !== undefined)
+                    params.append("asset_id", asset_id.toString());
+                if (is_group !== undefined)
+                    params.append("is_group", is_group.toString());
+                if (status !== undefined) params.append("status", status);
+                if (offset !== undefined)
+                    params.append("offset", offset.toString());
+                if (limit !== undefined)
+                    params.append("limit", limit.toString());
+                if (debit_as_negative !== undefined)
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString(),
+                        debit_as_negative.toString(),
                     );
 
                 const response = await fetch(
@@ -134,31 +137,29 @@ export function registerTransactionTools(server: McpServer) {
         "get_single_transaction",
         "Get details of a specific transaction",
         {
-            input: z.object({
-                transaction_id: z
-                    .number()
-                    .describe("ID of the transaction to retrieve"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe("Pass true to return debit amounts as negative"),
-            }),
+            transaction_id: z
+                .number()
+                .describe("ID of the transaction to retrieve"),
+            debit_as_negative: z
+                .boolean()
+                .optional()
+                .describe("Pass true to return debit amounts as negative"),
         },
-        async ({ input }) => {
+        async ({ transaction_id, debit_as_negative }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const params = new URLSearchParams();
-                if (input.debit_as_negative !== undefined) {
+                if (debit_as_negative !== undefined) {
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString(),
+                        debit_as_negative.toString(),
                     );
                 }
 
                 const url = params.toString()
-                    ? `${baseUrl}/transactions/${input.transaction_id}?${params}`
-                    : `${baseUrl}/transactions/${input.transaction_id}`;
+                    ? `${baseUrl}/transactions/${transaction_id}?${params}`
+                    : `${baseUrl}/transactions/${transaction_id}`;
 
                 const response = await fetch(url, {
                     headers: {
@@ -195,102 +196,100 @@ export function registerTransactionTools(server: McpServer) {
         "create_transactions",
         "Insert one or more transactions",
         {
-            input: z.object({
-                transactions: z
-                    .array(
-                        z.object({
-                            date: z
-                                .string()
-                                .describe("Date in YYYY-MM-DD format"),
-                            payee: z.string().describe("Payee name"),
-                            amount: z
-                                .string()
-                                .describe(
-                                    "Amount as string with up to 4 decimal places",
-                                ),
-                            currency: z
-                                .string()
-                                .optional()
-                                .describe(
-                                    "Three-letter lowercase currency code",
-                                ),
-                            category_id: z
-                                .number()
-                                .optional()
-                                .describe("Category ID"),
-                            asset_id: z
-                                .number()
-                                .optional()
-                                .describe("Asset ID for manual accounts"),
-                            recurring_id: z
-                                .number()
-                                .optional()
-                                .describe("Recurring expense ID"),
-                            notes: z
-                                .string()
-                                .optional()
-                                .describe("Transaction notes"),
-                            status: z
-                                .enum(["cleared", "uncleared", "pending"])
-                                .optional()
-                                .describe("Transaction status"),
-                            external_id: z
-                                .string()
-                                .optional()
-                                .describe("External ID (max 75 characters)"),
-                            tags: z
-                                .array(z.number())
-                                .optional()
-                                .describe("Array of tag IDs"),
-                        }),
-                    )
-                    .describe("Array of transactions to create"),
-                apply_rules: z
-                    .boolean()
-                    .optional()
-                    .describe("Apply account's rules to transactions"),
-                skip_duplicates: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Skip transactions that are potential duplicates",
-                    ),
-                check_for_recurring: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Check if transactions are part of recurring expenses",
-                    ),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Pass true if debits are provided as negative amounts",
-                    ),
-                skip_balance_update: z
-                    .boolean()
-                    .optional()
-                    .describe("Skip updating balance for assets/accounts"),
-            }),
+            transactions: z
+                .array(
+                    z.object({
+                        date: z.string().describe("Date in YYYY-MM-DD format"),
+                        payee: z.string().describe("Payee name"),
+                        amount: z
+                            .string()
+                            .describe(
+                                "Amount as string with up to 4 decimal places",
+                            ),
+                        currency: z
+                            .string()
+                            .optional()
+                            .describe("Three-letter lowercase currency code"),
+                        category_id: z
+                            .number()
+                            .optional()
+                            .describe("Category ID"),
+                        asset_id: z
+                            .number()
+                            .optional()
+                            .describe("Asset ID for manual accounts"),
+                        recurring_id: z
+                            .number()
+                            .optional()
+                            .describe("Recurring expense ID"),
+                        notes: z
+                            .string()
+                            .optional()
+                            .describe("Transaction notes"),
+                        status: z
+                            .enum(["cleared", "uncleared", "pending"])
+                            .optional()
+                            .describe("Transaction status"),
+                        external_id: z
+                            .string()
+                            .optional()
+                            .describe("External ID (max 75 characters)"),
+                        tags: z
+                            .array(z.number())
+                            .optional()
+                            .describe("Array of tag IDs"),
+                    }),
+                )
+                .describe("Array of transactions to create"),
+            apply_rules: z
+                .boolean()
+                .optional()
+                .describe("Apply account's rules to transactions"),
+            skip_duplicates: z
+                .boolean()
+                .optional()
+                .describe("Skip transactions that are potential duplicates"),
+            check_for_recurring: z
+                .boolean()
+                .optional()
+                .describe(
+                    "Check if transactions are part of recurring expenses",
+                ),
+            debit_as_negative: z
+                .boolean()
+                .optional()
+                .describe(
+                    "Pass true if debits are provided as negative amounts",
+                ),
+            skip_balance_update: z
+                .boolean()
+                .optional()
+                .describe("Skip updating balance for assets/accounts"),
         },
-        async ({ input }) => {
+        async ({
+            transactions,
+            apply_rules,
+            skip_duplicates,
+            check_for_recurring,
+            debit_as_negative,
+            skip_balance_update,
+        }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {
-                    transactions: input.transactions,
+                    transactions,
                 };
 
-                if (input.apply_rules !== undefined)
-                    body.apply_rules = input.apply_rules;
-                if (input.skip_duplicates !== undefined)
-                    body.skip_duplicates = input.skip_duplicates;
-                if (input.check_for_recurring !== undefined)
-                    body.check_for_recurring = input.check_for_recurring;
-                if (input.debit_as_negative !== undefined)
-                    body.debit_as_negative = input.debit_as_negative;
-                if (input.skip_balance_update !== undefined)
-                    body.skip_balance_update = input.skip_balance_update;
+                if (apply_rules !== undefined) body.apply_rules = apply_rules;
+                if (skip_duplicates !== undefined)
+                    body.skip_duplicates = skip_duplicates;
+                if (check_for_recurring !== undefined)
+                    body.check_for_recurring = check_for_recurring;
+                if (debit_as_negative !== undefined)
+                    body.debit_as_negative = debit_as_negative;
+                if (skip_balance_update !== undefined)
+                    body.skip_balance_update = skip_balance_update;
 
                 const response = await fetch(`${baseUrl}/transactions`, {
                     method: "POST",
@@ -330,84 +329,81 @@ export function registerTransactionTools(server: McpServer) {
         "update_transaction",
         "Update an existing transaction",
         {
-            input: z.object({
-                transaction_id: z
-                    .number()
-                    .describe("ID of the transaction to update"),
-                transaction: z
-                    .object({
-                        date: z
-                            .string()
-                            .optional()
-                            .describe("Date in YYYY-MM-DD format"),
-                        payee: z.string().optional().describe("Payee name"),
-                        amount: z
-                            .string()
-                            .optional()
-                            .describe(
-                                "Amount as string with up to 4 decimal places",
-                            ),
-                        currency: z
-                            .string()
-                            .optional()
-                            .describe("Three-letter lowercase currency code"),
-                        category_id: z
-                            .number()
-                            .optional()
-                            .describe("Category ID"),
-                        asset_id: z
-                            .number()
-                            .optional()
-                            .describe("Asset ID for manual accounts"),
-                        recurring_id: z
-                            .number()
-                            .optional()
-                            .describe("Recurring expense ID"),
-                        notes: z
-                            .string()
-                            .optional()
-                            .describe("Transaction notes"),
-                        status: z
-                            .enum(["cleared", "uncleared", "pending"])
-                            .optional()
-                            .describe("Transaction status"),
-                        external_id: z
-                            .string()
-                            .optional()
-                            .describe("External ID (max 75 characters)"),
-                        tags: z
-                            .array(z.number())
-                            .optional()
-                            .describe("Array of tag IDs"),
-                    })
-                    .describe("Transaction data to update"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Pass true if debits are provided as negative amounts",
-                    ),
-                skip_balance_update: z
-                    .boolean()
-                    .optional()
-                    .describe("Skip updating balance for assets/accounts"),
-            }),
+            transaction_id: z
+                .number()
+                .describe("ID of the transaction to update"),
+            transaction: z
+                .object({
+                    date: z
+                        .string()
+                        .optional()
+                        .describe("Date in YYYY-MM-DD format"),
+                    payee: z.string().optional().describe("Payee name"),
+                    amount: z
+                        .string()
+                        .optional()
+                        .describe(
+                            "Amount as string with up to 4 decimal places",
+                        ),
+                    currency: z
+                        .string()
+                        .optional()
+                        .describe("Three-letter lowercase currency code"),
+                    category_id: z.number().optional().describe("Category ID"),
+                    asset_id: z
+                        .number()
+                        .optional()
+                        .describe("Asset ID for manual accounts"),
+                    recurring_id: z
+                        .number()
+                        .optional()
+                        .describe("Recurring expense ID"),
+                    notes: z.string().optional().describe("Transaction notes"),
+                    status: z
+                        .enum(["cleared", "uncleared", "pending"])
+                        .optional()
+                        .describe("Transaction status"),
+                    external_id: z
+                        .string()
+                        .optional()
+                        .describe("External ID (max 75 characters)"),
+                    tags: z
+                        .array(z.number())
+                        .optional()
+                        .describe("Array of tag IDs"),
+                })
+                .describe("Transaction data to update"),
+            debit_as_negative: z
+                .boolean()
+                .optional()
+                .describe(
+                    "Pass true if debits are provided as negative amounts",
+                ),
+            skip_balance_update: z
+                .boolean()
+                .optional()
+                .describe("Skip updating balance for assets/accounts"),
         },
-        async ({ input }) => {
+        async ({
+            transaction_id,
+            transaction,
+            debit_as_negative,
+            skip_balance_update,
+        }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {
-                    transaction: input.transaction,
+                    transaction,
                 };
 
-                if (input.debit_as_negative !== undefined)
-                    body.debit_as_negative = input.debit_as_negative;
-                if (input.skip_balance_update !== undefined)
-                    body.skip_balance_update = input.skip_balance_update;
+                if (debit_as_negative !== undefined)
+                    body.debit_as_negative = debit_as_negative;
+                if (skip_balance_update !== undefined)
+                    body.skip_balance_update = skip_balance_update;
 
                 const response = await fetch(
-                    `${baseUrl}/transactions/${input.transaction_id}`,
+                    `${baseUrl}/transactions/${transaction_id}`,
                     {
                         method: "PUT",
                         headers: {
@@ -447,17 +443,15 @@ export function registerTransactionTools(server: McpServer) {
         "unsplit_transactions",
         "Remove one or more transactions from a split",
         {
-            input: z.object({
-                parent_ids: z
-                    .array(z.number())
-                    .describe("Array of parent transaction IDs to unsplit"),
-                remove_parents: z
-                    .boolean()
-                    .optional()
-                    .describe("If true, delete parent transactions"),
-            }),
+            parent_ids: z
+                .array(z.number())
+                .describe("Array of parent transaction IDs to unsplit"),
+            remove_parents: z
+                .boolean()
+                .optional()
+                .describe("If true, delete parent transactions"),
         },
-        async ({ input }) => {
+        async ({ parent_ids, remove_parents }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
@@ -470,8 +464,8 @@ export function registerTransactionTools(server: McpServer) {
                             "Content-Type": "application/json",
                         },
                         body: JSON.stringify({
-                            parent_ids: input.parent_ids,
-                            remove_parents: input.remove_parents,
+                            parent_ids,
+                            remove_parents,
                         }),
                     },
                 );
@@ -505,18 +499,14 @@ export function registerTransactionTools(server: McpServer) {
         "get_transaction_group",
         "Get details of a transaction group",
         {
-            input: z.object({
-                transaction_id: z
-                    .number()
-                    .describe("ID of the transaction group"),
-            }),
+            transaction_id: z.number().describe("ID of the transaction group"),
         },
-        async ({ input }) => {
+        async ({ transaction_id }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const response = await fetch(
-                    `${baseUrl}/transactions/group/${input.transaction_id}`,
+                    `${baseUrl}/transactions/group/${transaction_id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${lunchmoneyApiToken}`,
@@ -553,24 +543,22 @@ export function registerTransactionTools(server: McpServer) {
         "create_transaction_group",
         "Create a transaction group",
         {
-            input: z.object({
-                date: z.string().describe("Date in YYYY-MM-DD format"),
-                payee: z.string().describe("Payee name for the group"),
-                category_id: z
-                    .number()
-                    .optional()
-                    .describe("Category ID for the group"),
-                notes: z.string().optional().describe("Notes for the group"),
-                tags: z
-                    .array(z.number())
-                    .optional()
-                    .describe("Array of tag IDs for the group"),
-                transaction_ids: z
-                    .array(z.number())
-                    .describe("Array of transaction IDs to group"),
-            }),
+            date: z.string().describe("Date in YYYY-MM-DD format"),
+            payee: z.string().describe("Payee name for the group"),
+            category_id: z
+                .number()
+                .optional()
+                .describe("Category ID for the group"),
+            notes: z.string().optional().describe("Notes for the group"),
+            tags: z
+                .array(z.number())
+                .optional()
+                .describe("Array of tag IDs for the group"),
+            transaction_ids: z
+                .array(z.number())
+                .describe("Array of transaction IDs to group"),
         },
-        async ({ input }) => {
+        async ({ date, payee, category_id, notes, tags, transaction_ids }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
@@ -580,7 +568,14 @@ export function registerTransactionTools(server: McpServer) {
                         Authorization: `Bearer ${lunchmoneyApiToken}`,
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify(input),
+                    body: JSON.stringify({
+                        date,
+                        payee,
+                        category_id,
+                        notes,
+                        tags,
+                        transaction_ids,
+                    }),
                 });
 
                 if (!response.ok) {
@@ -612,18 +607,16 @@ export function registerTransactionTools(server: McpServer) {
         "delete_transaction_group",
         "Delete a transaction group or a single transaction.",
         {
-            input: z.object({
-                transaction_id: z
-                    .number()
-                    .describe("ID of the transaction group to delete"),
-            }),
+            transaction_id: z
+                .number()
+                .describe("ID of the transaction group to delete"),
         },
-        async ({ input }) => {
+        async ({ transaction_id }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const response = await fetch(
-                    `${baseUrl}/transactions/group/${input.transaction_id}`,
+                    `${baseUrl}/transactions/group/${transaction_id}`,
                     {
                         method: "DELETE",
                         headers: {

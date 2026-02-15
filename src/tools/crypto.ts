@@ -50,28 +50,24 @@ export function registerCryptoTools(server: McpServer) {
         "update_manual_crypto",
         "Update a manually-managed cryptocurrency asset balance",
         {
-            input: z.object({
-                crypto_id: z
-                    .number()
-                    .describe("ID of the crypto asset to update"),
-                balance: z
-                    .number()
-                    .optional()
-                    .describe("Updated balance of the crypto asset"),
-            }),
+            crypto_id: z.number().describe("ID of the crypto asset to update"),
+            balance: z
+                .number()
+                .optional()
+                .describe("Updated balance of the crypto asset"),
         },
-        async ({ input }) => {
+        async ({ crypto_id, balance }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {};
 
-                if (input.balance !== undefined) {
-                    body.balance = input.balance.toString();
+                if (balance !== undefined) {
+                    body.balance = balance.toString();
                 }
 
                 const response = await fetch(
-                    `${baseUrl}/crypto/manual/${input.crypto_id}`,
+                    `${baseUrl}/crypto/manual/${crypto_id}`,
                     {
                         method: "PUT",
                         headers: {

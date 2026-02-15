@@ -10,35 +10,32 @@ export function registerRecurringItemsTools(server: McpServer) {
         "get_recurring_items",
         "Retrieve a list of recurring items to expect for a specified month",
         {
-            input: z.object({
-                start_date: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Start date in YYYY-MM-DD format. Defaults to first day of current month",
-                    ),
-                end_date: z
-                    .string()
-                    .optional()
-                    .describe("End date in YYYY-MM-DD format"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe("Pass true to return debit amounts as negative"),
-            }),
+            start_date: z
+                .string()
+                .optional()
+                .describe(
+                    "Start date in YYYY-MM-DD format. Defaults to first day of current month",
+                ),
+            end_date: z
+                .string()
+                .optional()
+                .describe("End date in YYYY-MM-DD format"),
+            debit_as_negative: z
+                .boolean()
+                .optional()
+                .describe("Pass true to return debit amounts as negative"),
         },
-        async ({ input }) => {
+        async ({ start_date, end_date, debit_as_negative }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const params = new URLSearchParams();
-                if (input.start_date)
-                    params.append("start_date", input.start_date);
-                if (input.end_date) params.append("end_date", input.end_date);
-                if (input.debit_as_negative !== undefined) {
+                if (start_date) params.append("start_date", start_date);
+                if (end_date) params.append("end_date", end_date);
+                if (debit_as_negative !== undefined) {
                     params.append(
                         "debit_as_negative",
-                        input.debit_as_negative.toString(),
+                        debit_as_negative.toString(),
                     );
                 }
 

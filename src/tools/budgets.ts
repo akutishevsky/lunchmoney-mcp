@@ -10,36 +10,32 @@ export function registerBudgetTools(server: McpServer) {
         "get_budget_summary",
         "Get budget summary for a specific date range. The budgeted and spending amounts will be broken down by month.",
         {
-            input: z.object({
-                start_date: z
-                    .string()
-                    .describe(
-                        "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
-                    ),
-                end_date: z
-                    .string()
-                    .describe(
-                        "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
-                    ),
-                currency: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Currency for budget (defaults to primary currency)",
-                    ),
-            }),
+            start_date: z
+                .string()
+                .describe(
+                    "Start date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the start of a month (eg. 2021-04-01)",
+                ),
+            end_date: z
+                .string()
+                .describe(
+                    "End date in YYYY-MM-DD format. Lunch Money currently only supports monthly budgets, so your date should be the end of a month (eg. 2021-04-30)",
+                ),
+            currency: z
+                .string()
+                .optional()
+                .describe("Currency for budget (defaults to primary currency)"),
         },
-        async ({ input }) => {
+        async ({ start_date, end_date, currency }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const params = new URLSearchParams({
-                    start_date: input.start_date,
-                    end_date: input.end_date,
+                    start_date,
+                    end_date,
                 });
 
-                if (input.currency) {
-                    params.append("currency", input.currency);
+                if (currency) {
+                    params.append("currency", currency);
                 }
 
                 const response = await fetch(`${baseUrl}/budgets?${params}`, {
@@ -77,32 +73,28 @@ export function registerBudgetTools(server: McpServer) {
         "upsert_budget",
         "Create or update a budget for a specific category and month",
         {
-            input: z.object({
-                start_date: z
-                    .string()
-                    .describe("Budget month start date in YYYY-MM-DD format"),
-                category_id: z.number().describe("Category ID for the budget"),
-                amount: z.number().describe("Budget amount"),
-                currency: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Currency for budget (defaults to primary currency)",
-                    ),
-            }),
+            start_date: z
+                .string()
+                .describe("Budget month start date in YYYY-MM-DD format"),
+            category_id: z.number().describe("Category ID for the budget"),
+            amount: z.number().describe("Budget amount"),
+            currency: z
+                .string()
+                .optional()
+                .describe("Currency for budget (defaults to primary currency)"),
         },
-        async ({ input }) => {
+        async ({ start_date, category_id, amount, currency }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {
-                    start_date: input.start_date,
-                    category_id: input.category_id,
-                    amount: input.amount,
+                    start_date,
+                    category_id,
+                    amount,
                 };
 
-                if (input.currency) {
-                    body.currency = input.currency;
+                if (currency) {
+                    body.currency = currency;
                 }
 
                 const response = await fetch(`${baseUrl}/budgets`, {
@@ -143,22 +135,20 @@ export function registerBudgetTools(server: McpServer) {
         "remove_budget",
         "Remove a budget for a specific category and month",
         {
-            input: z.object({
-                start_date: z
-                    .string()
-                    .describe("Budget month start date in YYYY-MM-DD format"),
-                category_id: z
-                    .number()
-                    .describe("Category ID for the budget to remove"),
-            }),
+            start_date: z
+                .string()
+                .describe("Budget month start date in YYYY-MM-DD format"),
+            category_id: z
+                .number()
+                .describe("Category ID for the budget to remove"),
         },
-        async ({ input }) => {
+        async ({ start_date, category_id }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const params = new URLSearchParams({
-                    start_date: input.start_date,
-                    category_id: input.category_id.toString(),
+                    start_date,
+                    category_id: category_id.toString(),
                 });
 
                 const response = await fetch(`${baseUrl}/budgets?${params}`, {

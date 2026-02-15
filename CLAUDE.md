@@ -40,11 +40,10 @@ server.tool(
     "snake_case_name",
     "Description for AI",
     {
-        input: z.object({
-            /* Zod schema with .describe() on each field */
-        }),
+        /* Zod fields with .describe() — no z.object() wrapper */
+        field: z.string().describe("Field description"),
     },
-    async ({ input }) => {
+    async ({ field }) => {
         const { baseUrl, lunchmoneyApiToken } = getConfig();
         const response = await fetch(`${baseUrl}/endpoint`, {
             method: "GET",

@@ -47,81 +47,86 @@ export function registerAssetTools(server: McpServer) {
         "create_asset",
         "Create a new manually-managed asset",
         {
-            input: z.object({
-                type_name: z
-                    .enum([
-                        "cash",
-                        "credit",
-                        "investment",
-                        "real estate",
-                        "loan",
-                        "vehicle",
-                        "cryptocurrency",
-                        "employee compensation",
-                        "other liability",
-                        "other asset",
-                    ])
-                    .describe("Primary type of the asset"),
-                subtype_name: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Optional subtype (e.g., retirement, checking, savings)",
-                    ),
-                name: z.string().describe("Name of the asset"),
-                display_name: z
-                    .string()
-                    .optional()
-                    .describe("Display name of the asset (defaults to name)"),
-                balance: z.number().describe("Current balance of the asset"),
-                balance_as_of: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Date/time the balance is as of in ISO 8601 format",
-                    ),
-                currency: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Three-letter currency code (defaults to primary currency)",
-                    ),
-                institution_name: z
-                    .string()
-                    .optional()
-                    .describe("Name of the institution holding the asset"),
-                closed_on: z
-                    .string()
-                    .optional()
-                    .describe("Date the asset was closed in YYYY-MM-DD format"),
-                exclude_transactions: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether to exclude this asset from transaction options",
-                    ),
-            }),
+            type_name: z
+                .enum([
+                    "cash",
+                    "credit",
+                    "investment",
+                    "real estate",
+                    "loan",
+                    "vehicle",
+                    "cryptocurrency",
+                    "employee compensation",
+                    "other liability",
+                    "other asset",
+                ])
+                .describe("Primary type of the asset"),
+            subtype_name: z
+                .string()
+                .optional()
+                .describe(
+                    "Optional subtype (e.g., retirement, checking, savings)",
+                ),
+            name: z.string().describe("Name of the asset"),
+            display_name: z
+                .string()
+                .optional()
+                .describe("Display name of the asset (defaults to name)"),
+            balance: z.number().describe("Current balance of the asset"),
+            balance_as_of: z
+                .string()
+                .optional()
+                .describe("Date/time the balance is as of in ISO 8601 format"),
+            currency: z
+                .string()
+                .optional()
+                .describe(
+                    "Three-letter currency code (defaults to primary currency)",
+                ),
+            institution_name: z
+                .string()
+                .optional()
+                .describe("Name of the institution holding the asset"),
+            closed_on: z
+                .string()
+                .optional()
+                .describe("Date the asset was closed in YYYY-MM-DD format"),
+            exclude_transactions: z
+                .boolean()
+                .optional()
+                .describe(
+                    "Whether to exclude this asset from transaction options",
+                ),
         },
-        async ({ input }) => {
+        async ({
+            type_name,
+            subtype_name,
+            name,
+            display_name,
+            balance,
+            balance_as_of,
+            currency,
+            institution_name,
+            closed_on,
+            exclude_transactions,
+        }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {
-                    type_name: input.type_name,
-                    name: input.name,
-                    balance: input.balance.toString(),
+                    type_name,
+                    name,
+                    balance: balance.toString(),
                 };
 
-                if (input.subtype_name) body.subtype_name = input.subtype_name;
-                if (input.display_name) body.display_name = input.display_name;
-                if (input.balance_as_of)
-                    body.balance_as_of = input.balance_as_of;
-                if (input.currency) body.currency = input.currency;
-                if (input.institution_name)
-                    body.institution_name = input.institution_name;
-                if (input.closed_on) body.closed_on = input.closed_on;
-                if (input.exclude_transactions !== undefined)
-                    body.exclude_transactions = input.exclude_transactions;
+                if (subtype_name) body.subtype_name = subtype_name;
+                if (display_name) body.display_name = display_name;
+                if (balance_as_of) body.balance_as_of = balance_as_of;
+                if (currency) body.currency = currency;
+                if (institution_name) body.institution_name = institution_name;
+                if (closed_on) body.closed_on = closed_on;
+                if (exclude_transactions !== undefined)
+                    body.exclude_transactions = exclude_transactions;
 
                 const response = await fetch(`${baseUrl}/assets`, {
                     method: "POST",
@@ -161,96 +166,98 @@ export function registerAssetTools(server: McpServer) {
         "update_asset",
         "Update an existing manually-managed asset",
         {
-            input: z.object({
-                asset_id: z.number().describe("ID of the asset to update"),
-                type_name: z
-                    .enum([
-                        "cash",
-                        "credit",
-                        "investment",
-                        "real estate",
-                        "loan",
-                        "vehicle",
-                        "cryptocurrency",
-                        "employee compensation",
-                        "other liability",
-                        "other asset",
-                    ])
-                    .optional()
-                    .describe("Primary type of the asset"),
-                subtype_name: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Optional subtype (e.g., retirement, checking, savings)",
-                    ),
-                name: z.string().optional().describe("Name of the asset"),
-                display_name: z
-                    .string()
-                    .optional()
-                    .describe("Display name of the asset"),
-                balance: z
-                    .number()
-                    .optional()
-                    .describe("Current balance of the asset"),
-                balance_as_of: z
-                    .string()
-                    .optional()
-                    .describe(
-                        "Date/time the balance is as of in ISO 8601 format",
-                    ),
-                currency: z
-                    .string()
-                    .optional()
-                    .describe("Three-letter currency code"),
-                institution_name: z
-                    .string()
-                    .optional()
-                    .describe("Name of the institution holding the asset"),
-                closed_on: z
-                    .string()
-                    .optional()
-                    .describe("Date the asset was closed in YYYY-MM-DD format"),
-                exclude_transactions: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether to exclude this asset from transaction options",
-                    ),
-            }),
+            asset_id: z.number().describe("ID of the asset to update"),
+            type_name: z
+                .enum([
+                    "cash",
+                    "credit",
+                    "investment",
+                    "real estate",
+                    "loan",
+                    "vehicle",
+                    "cryptocurrency",
+                    "employee compensation",
+                    "other liability",
+                    "other asset",
+                ])
+                .optional()
+                .describe("Primary type of the asset"),
+            subtype_name: z
+                .string()
+                .optional()
+                .describe(
+                    "Optional subtype (e.g., retirement, checking, savings)",
+                ),
+            name: z.string().optional().describe("Name of the asset"),
+            display_name: z
+                .string()
+                .optional()
+                .describe("Display name of the asset"),
+            balance: z
+                .number()
+                .optional()
+                .describe("Current balance of the asset"),
+            balance_as_of: z
+                .string()
+                .optional()
+                .describe("Date/time the balance is as of in ISO 8601 format"),
+            currency: z
+                .string()
+                .optional()
+                .describe("Three-letter currency code"),
+            institution_name: z
+                .string()
+                .optional()
+                .describe("Name of the institution holding the asset"),
+            closed_on: z
+                .string()
+                .optional()
+                .describe("Date the asset was closed in YYYY-MM-DD format"),
+            exclude_transactions: z
+                .boolean()
+                .optional()
+                .describe(
+                    "Whether to exclude this asset from transaction options",
+                ),
         },
-        async ({ input }) => {
+        async ({
+            asset_id,
+            type_name,
+            subtype_name,
+            name,
+            display_name,
+            balance,
+            balance_as_of,
+            currency,
+            institution_name,
+            closed_on,
+            exclude_transactions,
+        }) => {
             try {
                 const { baseUrl, lunchmoneyApiToken } = getConfig();
 
                 const body: any = {};
 
-                if (input.type_name) body.type_name = input.type_name;
-                if (input.subtype_name) body.subtype_name = input.subtype_name;
-                if (input.name) body.name = input.name;
-                if (input.display_name) body.display_name = input.display_name;
-                if (input.balance !== undefined)
-                    body.balance = input.balance.toString();
-                if (input.balance_as_of)
-                    body.balance_as_of = input.balance_as_of;
-                if (input.currency) body.currency = input.currency;
-                if (input.institution_name)
-                    body.institution_name = input.institution_name;
-                if (input.closed_on) body.closed_on = input.closed_on;
-                if (input.exclude_transactions !== undefined)
-                    body.exclude_transactions = input.exclude_transactions;
+                if (type_name) body.type_name = type_name;
+                if (subtype_name) body.subtype_name = subtype_name;
+                if (name) body.name = name;
+                if (display_name) body.display_name = display_name;
+                if (balance !== undefined) body.balance = balance.toString();
+                if (balance_as_of) body.balance_as_of = balance_as_of;
+                if (currency) body.currency = currency;
+                if (institution_name) body.institution_name = institution_name;
+                if (closed_on) body.closed_on = closed_on;
+                if (exclude_transactions !== undefined)
+                    body.exclude_transactions = exclude_transactions;
 
-                const response = await fetch(
-                    `${baseUrl}/assets/${input.asset_id}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(body),
+                const response = await fetch(`${baseUrl}/assets/${asset_id}`, {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${lunchmoneyApiToken}`,
+                        "Content-Type": "application/json",
                     },
-                );
+                    body: JSON.stringify(body),
+                });
 
                 if (!response.ok) {
                     return errorResponse(
