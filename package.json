@@ -9,7 +9,7 @@
     "scripts": {
         "build": "tsc && chmod 755 build/index.js",
         "build:mcpb": "npm run build && mkdir -p dist && npx @anthropic-ai/mcpb pack . dist/lunchmoney.mcpb",
-        "prepublishOnly": "npm run build",
+        "prepublish": "npm run build:mcpb",
         "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js"
     },
     "files": [
