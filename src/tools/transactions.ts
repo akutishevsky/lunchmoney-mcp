@@ -1,8 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
+import {
+    api,
+    dataResponse,
+    successResponse,
+    handleApiError,
+    catchError,
+} from "../api.js";
 import { Transaction } from "../types.js";
 
 export function registerTransactionTools(server: McpServer) {
@@ -14,8 +18,12 @@ export function registerTransactionTools(server: McpServer) {
             inputSchema: {
                 start_date: z
                     .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Start date in YYYY-MM-DD format"),
-                end_date: z.string().describe("End date in YYYY-MM-DD format"),
+                end_date: z
+                    .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                    .describe("End date in YYYY-MM-DD format"),
                 tag_id: z.number().optional().describe("Filter by tag ID"),
                 recurring_id: z
                     .number()
@@ -72,8 +80,6 @@ export function registerTransactionTools(server: McpServer) {
             debit_as_negative,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
                 const params = new URLSearchParams({
                     start_date,
                     end_date,
@@ -105,38 +111,22 @@ export function registerTransactionTools(server: McpServer) {
                         debit_as_negative.toString(),
                     );
 
-                const response = await fetch(
-                    `${baseUrl}/transactions?${params}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
-                );
+                const response = await api.get(`/transactions?${params}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get transactions",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get transactions",
                     );
                 }
 
                 const data = await response.json();
                 const transactions: Transaction[] = data.transactions;
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData({
-                                transactions,
-                                has_more: data.has_more,
-                            }),
-                        },
-                    ],
-                };
+                return dataResponse({
+                    transactions,
+                    has_more: data.has_more,
+                });
             } catch (error) {
                 return catchError(error, "Failed to get transactions");
             }
@@ -162,8 +152,6 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ transaction_id, debit_as_negative }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
                 const params = new URLSearchParams();
                 if (debit_as_negative !== undefined) {
                     params.append(
@@ -172,35 +160,23 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const url = params.toString()
-                    ? `${baseUrl}/transactions/${transaction_id}?${params}`
-                    : `${baseUrl}/transactions/${transaction_id}`;
+                const query = params.toString();
+                const path = query
+                    ? `/transactions/${transaction_id}?${query}`
+                    : `/transactions/${transaction_id}`;
 
-                const response = await fetch(url, {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.get(path);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get transaction",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get transaction",
                     );
                 }
 
                 const transaction: Transaction = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(transaction),
-                        },
-                    ],
-                };
+                return dataResponse(transaction);
             } catch (error) {
                 return catchError(error, "Failed to get transaction");
             }
@@ -217,15 +193,20 @@ export function registerTransactionTools(server: McpServer) {
                         z.object({
                             date: z
                                 .string()
+                                .regex(
+                                    /^\d{4}-\d{2}-\d{2}$/,
+                                    "Must be YYYY-MM-DD format",
+                                )
                                 .describe("Date in YYYY-MM-DD format"),
                             payee: z.string().describe("Payee name"),
-                            amount: z
+                            amount: z.coerce
                                 .string()
                                 .describe(
                                     "Amount as string with up to 4 decimal places",
                                 ),
                             currency: z
                                 .string()
+                                .length(3)
                                 .optional()
                                 .describe(
                                     "Three-letter lowercase currency code",
@@ -252,6 +233,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .describe("Transaction status"),
                             external_id: z
                                 .string()
+                                .max(75)
                                 .optional()
                                 .describe("External ID (max 75 characters)"),
                             tags: z
@@ -307,9 +289,7 @@ export function registerTransactionTools(server: McpServer) {
             skip_balance_update,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const body: any = {
+                const body: Record<string, unknown> = {
                     transactions,
                 };
 
@@ -323,34 +303,18 @@ export function registerTransactionTools(server: McpServer) {
                 if (skip_balance_update !== undefined)
                     body.skip_balance_update = skip_balance_update;
 
-                const response = await fetch(`${baseUrl}/transactions`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(body),
-                });
+                const response = await api.post("/transactions", body);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to create transactions",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to create transactions",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to create transactions");
             }
@@ -369,10 +333,14 @@ export function registerTransactionTools(server: McpServer) {
                     .object({
                         date: z
                             .string()
+                            .regex(
+                                /^\d{4}-\d{2}-\d{2}$/,
+                                "Must be YYYY-MM-DD format",
+                            )
                             .optional()
                             .describe("Date in YYYY-MM-DD format"),
                         payee: z.string().optional().describe("Payee name"),
-                        amount: z
+                        amount: z.coerce
                             .string()
                             .optional()
                             .describe(
@@ -380,6 +348,7 @@ export function registerTransactionTools(server: McpServer) {
                             ),
                         currency: z
                             .string()
+                            .length(3)
                             .optional()
                             .describe("Three-letter lowercase currency code"),
                         category_id: z
@@ -404,6 +373,7 @@ export function registerTransactionTools(server: McpServer) {
                             .describe("Transaction status"),
                         external_id: z
                             .string()
+                            .max(75)
                             .optional()
                             .describe("External ID (max 75 characters)"),
                         tags: z
@@ -440,9 +410,7 @@ export function registerTransactionTools(server: McpServer) {
             skip_balance_update,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const body: any = {
+                const body: Record<string, unknown> = {
                     transaction,
                 };
 
@@ -451,37 +419,21 @@ export function registerTransactionTools(server: McpServer) {
                 if (skip_balance_update !== undefined)
                     body.skip_balance_update = skip_balance_update;
 
-                const response = await fetch(
-                    `${baseUrl}/transactions/${transaction_id}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(body),
-                    },
+                const response = await api.put(
+                    `/transactions/${transaction_id}`,
+                    body,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to update transaction",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to update transaction",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to update transaction");
             }
@@ -507,42 +459,21 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ parent_ids, remove_parents }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/transactions/unsplit`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            parent_ids,
-                            remove_parents,
-                        }),
-                    },
-                );
+                const response = await api.post("/transactions/unsplit", {
+                    parent_ids,
+                    remove_parents,
+                });
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to unsplit transactions",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to unsplit transactions",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to unsplit transactions");
             }
@@ -564,36 +495,20 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ transaction_id }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/transactions/group/${transaction_id}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
+                const response = await api.get(
+                    `/transactions/group/${transaction_id}`,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get transaction group",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get transaction group",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to get transaction group");
             }
@@ -605,7 +520,10 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Create a transaction group",
             inputSchema: {
-                date: z.string().describe("Date in YYYY-MM-DD format"),
+                date: z
+                    .string()
+                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                    .describe("Date in YYYY-MM-DD format"),
                 payee: z.string().describe("Payee name for the group"),
                 category_id: z
                     .number()
@@ -626,43 +544,25 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ date, payee, category_id, notes, tags, transaction_ids }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(`${baseUrl}/transactions/group`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        date,
-                        payee,
-                        category_id,
-                        notes,
-                        tags,
-                        transaction_ids,
-                    }),
+                const response = await api.post("/transactions/group", {
+                    date,
+                    payee,
+                    category_id,
+                    notes,
+                    tags,
+                    transaction_ids,
                 });
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to create transaction group",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to create transaction group",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to create transaction group");
             }
@@ -684,35 +584,20 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ transaction_id }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/transactions/group/${transaction_id}`,
-                    {
-                        method: "DELETE",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
+                const response = await api.delete(
+                    `/transactions/group/${transaction_id}`,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to delete transaction group",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to delete transaction group",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Transaction group deleted successfully",
-                        },
-                    ],
-                };
+                return successResponse(
+                    "Transaction group deleted successfully",
+                );
             } catch (error) {
                 return catchError(error, "Failed to delete transaction group");
             }

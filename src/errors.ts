@@ -33,5 +33,6 @@ export function errorResponse(text: string) {
 
 export function catchError(error: unknown, context: string) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error(`${context}: ${message}`);
     return errorResponse(`${context}: ${message}`);
 }

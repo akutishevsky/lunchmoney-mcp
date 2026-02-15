@@ -1,8 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
+import { api, dataResponse, handleApiError, catchError } from "../api.js";
 import { Crypto } from "../types.js";
 
 export function registerCryptoTools(server: McpServer) {
@@ -17,34 +15,19 @@ export function registerCryptoTools(server: McpServer) {
         },
         async () => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(`${baseUrl}/crypto`, {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.get("/crypto");
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get crypto assets",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get crypto assets",
                     );
                 }
 
                 const data = await response.json();
                 const cryptoAssets: Crypto[] = data.crypto;
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(cryptoAssets),
-                        },
-                    ],
-                };
+                return dataResponse(cryptoAssets);
             } catch (error) {
                 return catchError(error, "Failed to get crypto assets");
             }
@@ -71,45 +54,27 @@ export function registerCryptoTools(server: McpServer) {
         },
         async ({ crypto_id, balance }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const body: any = {};
+                const body: Record<string, unknown> = {};
 
                 if (balance !== undefined) {
                     body.balance = balance.toString();
                 }
 
-                const response = await fetch(
-                    `${baseUrl}/crypto/manual/${crypto_id}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(body),
-                    },
+                const response = await api.put(
+                    `/crypto/manual/${crypto_id}`,
+                    body,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to update crypto asset",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to update crypto asset",
                     );
                 }
 
                 const result = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(result),
-                        },
-                    ],
-                };
+                return dataResponse(result);
             } catch (error) {
                 return catchError(error, "Failed to update crypto asset");
             }

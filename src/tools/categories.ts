@@ -1,9 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
-import { Category, CategoryChild } from "../types.js";
+import { api, dataResponse, handleApiError, catchError } from "../api.js";
+import { Category } from "../types.js";
 
 export function registerCategoryTools(server: McpServer) {
     server.registerTool(
@@ -26,35 +24,19 @@ export function registerCategoryTools(server: McpServer) {
         async ({ format: formatParam }) => {
             try {
                 const format = formatParam || "flattened";
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const response = await fetch(
-                    `${baseUrl}/categories?format=${format}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
-                );
+
+                const response = await api.get(`/categories?format=${format}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get all categories",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get all categories",
                     );
                 }
 
                 const categories: Category[] = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(categories),
-                        },
-                    ],
-                };
+                return dataResponse(categories);
             } catch (error) {
                 return catchError(error, "Failed to get all categories");
             }
@@ -68,7 +50,7 @@ export function registerCategoryTools(server: McpServer) {
                 "Get hydrated details on a single category. Note that if this category is part of a category group, its properties (is_income, exclude_from_budget, exclude_from_totals) will inherit from the category group.",
             inputSchema: {
                 categoryId: z
-                    .string()
+                    .number()
                     .describe(
                         "Id of the category to query. Should call the get_all_categories tool first to get the ids.",
                     ),
@@ -79,35 +61,18 @@ export function registerCategoryTools(server: McpServer) {
         },
         async ({ categoryId }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const response = await fetch(
-                    `${baseUrl}/categories/${categoryId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
-                );
+                const response = await api.get(`/categories/${categoryId}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get single category",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get single category",
                     );
                 }
 
                 const category: Category = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(category),
-                        },
-                    ],
-                };
+                return dataResponse(category);
             } catch (error) {
                 return catchError(error, "Failed to get single category");
             }
@@ -121,41 +86,39 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 name: z
                     .string()
+                    .min(1)
+                    .max(40)
                     .describe(
                         "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
-                    .default("")
                     .describe(
                         "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe("Whether or not category should be archived."),
                 group_id: z
                     .number()
@@ -178,48 +141,30 @@ export function registerCategoryTools(server: McpServer) {
             group_id,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const requestBody: any = {
-                    name,
-                    description,
-                    is_income,
-                    exclude_from_budget,
-                    exclude_from_totals,
-                    archived,
-                };
+                const requestBody: Record<string, unknown> = { name };
 
-                if (group_id !== undefined) {
-                    requestBody.group_id = group_id;
-                }
+                if (description !== undefined)
+                    requestBody.description = description;
+                if (is_income !== undefined) requestBody.is_income = is_income;
+                if (exclude_from_budget !== undefined)
+                    requestBody.exclude_from_budget = exclude_from_budget;
+                if (exclude_from_totals !== undefined)
+                    requestBody.exclude_from_totals = exclude_from_totals;
+                if (archived !== undefined) requestBody.archived = archived;
+                if (group_id !== undefined) requestBody.group_id = group_id;
 
-                const response = await fetch(`${baseUrl}/categories`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(requestBody),
-                });
+                const response = await api.post("/categories", requestBody);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to create category",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to create category",
                     );
                 }
 
                 const category: Category = await response.json();
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(category),
-                        },
-                    ],
-                };
+                return dataResponse(category);
             } catch (error) {
                 return catchError(error, "Failed to create category");
             }
@@ -233,34 +178,33 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 name: z
                     .string()
+                    .min(1)
+                    .max(40)
                     .describe(
                         "Name of category. Must be between 1 and 40 characters.",
                     ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
-                    .default("")
                     .describe(
                         "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
@@ -291,51 +235,33 @@ export function registerCategoryTools(server: McpServer) {
             new_categories,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const requestBody: any = {
-                    name,
-                    description,
-                    is_income,
-                    exclude_from_budget,
-                    exclude_from_totals,
-                    category_ids,
-                    new_categories,
-                };
+                const requestBody: Record<string, unknown> = { name };
 
-                if (category_ids && category_ids.length > 0) {
+                if (description !== undefined)
+                    requestBody.description = description;
+                if (is_income !== undefined) requestBody.is_income = is_income;
+                if (exclude_from_budget !== undefined)
+                    requestBody.exclude_from_budget = exclude_from_budget;
+                if (exclude_from_totals !== undefined)
+                    requestBody.exclude_from_totals = exclude_from_totals;
+                if (category_ids && category_ids.length > 0)
                     requestBody.category_ids = category_ids;
-                }
-
-                if (new_categories && new_categories.length > 0) {
+                if (new_categories && new_categories.length > 0)
                     requestBody.new_categories = new_categories;
-                }
 
-                const response = await fetch(`${baseUrl}/categories/group`, {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(requestBody),
-                });
+                const response = await api.post(
+                    "/categories/group",
+                    requestBody,
+                );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to create category group",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to create category group",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(await response.json()),
-                        },
-                    ],
-                };
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to create category group");
             }
@@ -348,54 +274,53 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Update the properties for a single category or category group.",
             inputSchema: {
-                name: z
-                    .string()
-                    .describe(
-                        "Name of category. Must be between 1 and 40 characters.",
-                    ),
                 categoryId: z
-                    .string()
+                    .number()
                     .describe(
                         "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids.",
                     ),
+                name: z
+                    .string()
+                    .min(1)
+                    .max(40)
+                    .optional()
+                    .describe(
+                        "Name of category. Must be between 1 and 40 characters.",
+                    ),
                 description: z
                     .string()
+                    .max(140)
                     .optional()
-                    .default("")
                     .describe(
                         "Description of category. Must be less than 140 characters.",
                     ),
                 is_income: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe(
                         "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
                     .optional()
-                    .default(false)
                     .describe("Whether or not category should be archived."),
                 group_id: z
                     .number()
                     .optional()
                     .describe(
-                        "Assigns the newly-created category to an existing category group.",
+                        "Assigns the category to an existing category group.",
                     ),
             },
             annotations: {
@@ -403,8 +328,8 @@ export function registerCategoryTools(server: McpServer) {
             },
         },
         async ({
-            name,
             categoryId,
+            name,
             description,
             is_income,
             exclude_from_budget,
@@ -413,49 +338,32 @@ export function registerCategoryTools(server: McpServer) {
             group_id,
         }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const requestBody: any = {
-                    name,
-                    description,
-                    is_income,
-                    exclude_from_budget,
-                    exclude_from_totals,
-                    archived,
-                };
+                const requestBody: Record<string, unknown> = {};
 
-                if (group_id !== undefined) {
-                    requestBody.group_id = group_id;
-                }
+                if (name !== undefined) requestBody.name = name;
+                if (description !== undefined)
+                    requestBody.description = description;
+                if (is_income !== undefined) requestBody.is_income = is_income;
+                if (exclude_from_budget !== undefined)
+                    requestBody.exclude_from_budget = exclude_from_budget;
+                if (exclude_from_totals !== undefined)
+                    requestBody.exclude_from_totals = exclude_from_totals;
+                if (archived !== undefined) requestBody.archived = archived;
+                if (group_id !== undefined) requestBody.group_id = group_id;
 
-                const response = await fetch(
-                    `${baseUrl}/categories/${categoryId}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(requestBody),
-                    },
+                const response = await api.put(
+                    `/categories/${categoryId}`,
+                    requestBody,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to update category",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to update category",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(await response.json()),
-                        },
-                    ],
-                };
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to update category");
             }
@@ -490,8 +398,7 @@ export function registerCategoryTools(server: McpServer) {
         },
         async ({ group_id, category_ids, new_categories }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-                const requestBody: any = {};
+                const requestBody: Record<string, unknown> = {};
 
                 if (category_ids && category_ids.length > 0) {
                     requestBody.category_ids = category_ids;
@@ -501,35 +408,19 @@ export function registerCategoryTools(server: McpServer) {
                     requestBody.new_categories = new_categories;
                 }
 
-                const response = await fetch(
-                    `${baseUrl}/categories/group/${group_id}/add`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(requestBody),
-                    },
+                const response = await api.post(
+                    `/categories/group/${group_id}/add`,
+                    requestBody,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to add to category group",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to add to category group",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(await response.json()),
-                        },
-                    ],
-                };
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to add to category group");
             }
@@ -544,7 +435,6 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 category_id: z
                     .number()
-                    .optional()
                     .describe(
                         "Id of the category or the category group to delete.",
                     ),
@@ -555,35 +445,16 @@ export function registerCategoryTools(server: McpServer) {
         },
         async ({ category_id }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/categories/${category_id}`,
-                    {
-                        method: "DELETE",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
-                );
+                const response = await api.delete(`/categories/${category_id}`);
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to delete category",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to delete category",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(await response.json()),
-                        },
-                    ],
-                };
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to delete category");
             }
@@ -598,7 +469,6 @@ export function registerCategoryTools(server: McpServer) {
             inputSchema: {
                 category_id: z
                     .number()
-                    .optional()
                     .describe(
                         "Id of the category or the category group to delete.",
                     ),
@@ -609,35 +479,18 @@ export function registerCategoryTools(server: McpServer) {
         },
         async ({ category_id }) => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/categories/${category_id}/force`,
-                    {
-                        method: "DELETE",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
+                const response = await api.delete(
+                    `/categories/${category_id}/force`,
                 );
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to force delete category",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to force delete category",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(await response.json()),
-                        },
-                    ],
-                };
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to force delete category");
             }

@@ -1,7 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { getConfig } from "../config.js";
-import { getErrorMessage, errorResponse, catchError } from "../errors.js";
-import { formatData } from "../format.js";
+import {
+    api,
+    dataResponse,
+    successResponse,
+    handleApiError,
+    catchError,
+} from "../api.js";
 import { PlaidAccount } from "../types.js";
 
 export function registerPlaidAccountTools(server: McpServer) {
@@ -16,34 +20,19 @@ export function registerPlaidAccountTools(server: McpServer) {
         },
         async () => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(`${baseUrl}/plaid_accounts`, {
-                    headers: {
-                        Authorization: `Bearer ${lunchmoneyApiToken}`,
-                    },
-                });
+                const response = await api.get("/plaid_accounts");
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to get Plaid accounts",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to get Plaid accounts",
                     );
                 }
 
                 const data = await response.json();
                 const plaidAccounts: PlaidAccount[] = data.plaid_accounts;
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: formatData(plaidAccounts),
-                        },
-                    ],
-                };
+                return dataResponse(plaidAccounts);
             } catch (error) {
                 return catchError(error, "Failed to get Plaid accounts");
             }
@@ -61,35 +50,18 @@ export function registerPlaidAccountTools(server: McpServer) {
         },
         async () => {
             try {
-                const { baseUrl, lunchmoneyApiToken } = getConfig();
-
-                const response = await fetch(
-                    `${baseUrl}/plaid_accounts/fetch`,
-                    {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${lunchmoneyApiToken}`,
-                        },
-                    },
-                );
+                const response = await api.post("/plaid_accounts/fetch");
 
                 if (!response.ok) {
-                    return errorResponse(
-                        await getErrorMessage(
-                            response,
-                            "Failed to trigger Plaid fetch",
-                        ),
+                    return handleApiError(
+                        response,
+                        "Failed to trigger Plaid fetch",
                     );
                 }
 
-                return {
-                    content: [
-                        {
-                            type: "text",
-                            text: "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
-                        },
-                    ],
-                };
+                return successResponse(
+                    "Plaid fetch triggered successfully. Fetching may take up to 5 minutes.",
+                );
             } catch (error) {
                 return catchError(error, "Failed to trigger Plaid fetch");
             }
