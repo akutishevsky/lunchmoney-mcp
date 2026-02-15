@@ -1,6 +1,6 @@
 {
     "name": "@akutishevsky/lunchmoney-mcp",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "Model Context Protocol server for LunchMoney personal finance management",
     "main": "build/index.js",
     "bin": {
@@ -13,7 +13,7 @@
         "format": "prettier --write .",
         "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
         "prepare": "husky",
-        "prepublish:changelog": "claude -p --allowedTools Edit,Read,Glob,Grep 'update @CHANGELOG.md and update package versions everywhere where needed'",
+        "prepublish:changelog": "claude -p --model haiku --allowedTools Bash,Edit,Read,Glob,Grep -- 'Review all git commits since the last version tag (use git log and git diff). Summarize changes into @CHANGELOG.md following the existing format. Bump the version in package.json, manifest.json, server.json, and src/index.ts.'",
         "prepublishOnly": "npm run build:mcpb"
     },
     "files": [
@@ -27,7 +27,7 @@
         "ai",
         "assistant"
     ],
-    "author": "",
+    "author": "Anton Kutishevskyi",
     "license": "MIT",
     "repository": {
         "type": "git",

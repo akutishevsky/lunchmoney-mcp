@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-02-15
+
+### Added
+
+- MCP prompts for common financial workflows (e.g., expense analysis, budget planning)
+- Tool annotations (read-only, idempotent, destructive, open-world) for all tools to guide AI behavior
+
+### Changed
+
+- Updated MCP SDK to v1.26.0 with support for tool annotations
+- Migrated to `registerTool()` API (replaces direct tool registration)
+- Modernized tsconfig with `NodeNext` module resolution, `isolatedModules`, and `sourceMaps`
+
+### Fixed
+
+- Remove deprecated `capabilities` from McpServer constructor
+- Use `prompts_generated` flag in DXT manifest
+- Replace `prepublish` script with `prepublishOnly` for npm compatibility
+- Add `--allowedTools` flag to `prepublish:changelog` script for automated changelog generation
+
 ## [1.1.1] - 2026-02-15
 
 ### Fixed
