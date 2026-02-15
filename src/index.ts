@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { createRequire } from "module";
 import { initializeConfig } from "./config.js";
 import { registerUserTools } from "./tools/user.js";
 import { registerCategoryTools } from "./tools/categories.js";
@@ -13,9 +14,12 @@ import { registerPlaidAccountTools } from "./tools/plaid-accounts.js";
 import { registerCryptoTools } from "./tools/crypto.js";
 import { registerPrompts } from "./prompts.js";
 
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
+
 const server = new McpServer({
     name: "lunchmoney-mcp",
-    version: "1.3.0",
+    version,
 });
 
 registerUserTools(server);
