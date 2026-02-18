@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-02-18
+
+### Added
+
+- Debug logging for API requests and responses (method, path, status, duration, response body) via `LUNCHMONEY_DEBUG` environment variable
+
+### Changed
+
+- Added `LUNCHMONEY_DEBUG` configuration to manifest, server, and package for debug logging support
+
+## [1.4.1] - 2026-02-18
+
+### Changed
+
+- Added `mcpName` to package.json for MCP Registry ownership verification
+- Updated server.json to include package version
+
 ## [1.4.0] - 2026-02-15
 
 ### Added
