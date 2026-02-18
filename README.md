@@ -81,12 +81,15 @@ The server can be configured in your MCP client's configuration file. The exact 
             "command": "npx",
             "args": ["@akutishevsky/lunchmoney-mcp"],
             "env": {
-                "LUNCHMONEY_API_TOKEN": "your-api-token-here"
+                "LUNCHMONEY_API_TOKEN": "your-api-token-here",
+                "LUNCHMONEY_DEBUG": "true"
             }
         }
     }
 }
 ```
+
+> **Note:** `LUNCHMONEY_DEBUG` is optional. Set it to `"true"` to enable debug logging of API requests and responses to stderr. Useful for troubleshooting.
 
 Replace `"your-api-token-here"` with your actual LunchMoney API token from [LunchMoney Developer Settings](https://my.lunchmoney.app/developers).
 

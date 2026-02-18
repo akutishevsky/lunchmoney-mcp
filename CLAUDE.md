@@ -23,6 +23,8 @@ A husky pre-commit hook runs `npm run format` automatically before every commit.
 
 **Config:** `src/config.ts` — singleton initialized at startup via `initializeConfig()`. Requires `LUNCHMONEY_API_TOKEN` env var. Base URL (`https://dev.lunchmoney.app/v1`) is hardcoded. Access via `getConfig()`.
 
+**Debug logging:** Set `LUNCHMONEY_DEBUG=true` to log API requests and responses (method, path, status, duration, body) to stderr. Controlled via `isDebug()` in `src/api.ts`.
+
 **Types:** `src/types.ts` — TypeScript interfaces matching LunchMoney API response shapes (snake_case field names).
 
 **Tools:** `src/tools/` — one file per domain. Each exports a `register[Domain]Tools(server: McpServer)` function called from `index.ts`.
