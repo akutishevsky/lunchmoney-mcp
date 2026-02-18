@@ -5,6 +5,7 @@ import { formatData } from "./format.js";
 const TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
+const isDebug = (): boolean => process.env.LUNCHMONEY_DEBUG === "true";
 
 async function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -44,6 +45,14 @@ async function apiRequest(
 
     const url = `${baseUrl}${path}`;
 
+    if (isDebug()) {
+        const parts = [`[API Request] ${method} ${path}`];
+        if (body !== undefined) parts.push(`Body: ${JSON.stringify(body)}`);
+        console.error(parts.join(" | "));
+    }
+
+    const startTime = Date.now();
+
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         const response = await fetch(url, options);
 
@@ -57,6 +66,16 @@ async function apiRequest(
             );
             await sleep(delay);
             continue;
+        }
+
+        if (isDebug()) {
+            const duration = Date.now() - startTime;
+            const clone = response.clone();
+            clone.text().then((text) => {
+                console.error(
+                    `[API Response] ${method} ${path} | Status: ${response.status} | Duration: ${duration}ms | Body: ${text}`,
+                );
+            });
         }
 
         return response;
