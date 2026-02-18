@@ -10,7 +10,7 @@
     "scripts": {
         "build:mcpb": "npm run build && mkdir -p dist && npx @anthropic-ai/mcpb pack . dist/lunchmoney.mcpb",
         "build": "tsc && chmod 755 build/index.js",
-        "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' npx @modelcontextprotocol/inspector node build/index.js",
+        "dev": "LUNCHMONEY_API_TOKEN='YOUR_TOKEN_HERE' LUNCHMONEY_DEBUG='true' npx @modelcontextprotocol/inspector node build/index.js",
         "format": "prettier --write .",
         "lint": "eslint src/",
         "inspect": "npx @modelcontextprotocol/inspector node build/index.js",

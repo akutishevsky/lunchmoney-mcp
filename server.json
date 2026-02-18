@@ -25,6 +25,12 @@
                     "description": "Your LunchMoney API token. Obtain it from https://my.lunchmoney.app/settings/developer",
                     "isRequired": true,
                     "isSecret": true
+                },
+                {
+                    "name": "LUNCHMONEY_DEBUG",
+                    "description": "Set to 'true' to enable debug logging of API requests and responses to stderr",
+                    "isRequired": false,
+                    "isSecret": false
                 }
             ]
         }

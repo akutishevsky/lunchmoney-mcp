@@ -18,7 +18,8 @@
             "command": "node",
             "args": ["${__dirname}/build/index.js"],
             "env": {
-                "LUNCHMONEY_API_TOKEN": "${user_config.LUNCHMONEY_API_TOKEN}"
+                "LUNCHMONEY_API_TOKEN": "${user_config.LUNCHMONEY_API_TOKEN}",
+                "LUNCHMONEY_DEBUG": "${user_config.LUNCHMONEY_DEBUG}"
             }
         }
     },
@@ -148,6 +149,13 @@
             "description": "Your LunchMoney API token. You can obtain this from https://my.lunchmoney.app/settings/developer",
             "required": true,
             "sensitive": true
+        },
+        "LUNCHMONEY_DEBUG": {
+            "type": "boolean",
+            "title": "Debug Logging",
+            "description": "Enable debug logging of API requests and responses to stderr",
+            "required": false,
+            "sensitive": false
         }
     },
     "keywords": [
