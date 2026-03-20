@@ -61,7 +61,9 @@ export function registerAssetTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("Display name of the asset (defaults to name)"),
-                balance: z.number().describe("Current balance of the asset"),
+                balance: z.coerce
+                    .number()
+                    .describe("Current balance of the asset"),
                 balance_as_of: z
                     .string()
                     .optional()
@@ -146,7 +148,9 @@ export function registerAssetTools(server: McpServer) {
         {
             description: "Update an existing manually-managed asset",
             inputSchema: {
-                asset_id: z.number().describe("ID of the asset to update"),
+                asset_id: z.coerce
+                    .number()
+                    .describe("ID of the asset to update"),
                 type_name: z
                     .enum([
                         "cash",

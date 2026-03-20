@@ -24,7 +24,10 @@ export function registerTransactionTools(server: McpServer) {
                     .string()
                     .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("End date in YYYY-MM-DD format"),
-                tag_id: z.number().optional().describe("Filter by tag ID"),
+                tag_id: z.coerce
+                    .number()
+                    .optional()
+                    .describe("Filter by tag ID"),
                 recurring_id: z
                     .number()
                     .optional()
@@ -37,7 +40,10 @@ export function registerTransactionTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe("Filter by category ID"),
-                asset_id: z.number().optional().describe("Filter by asset ID"),
+                asset_id: z.coerce
+                    .number()
+                    .optional()
+                    .describe("Filter by asset ID"),
                 is_group: z
                     .boolean()
                     .optional()
@@ -237,7 +243,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .optional()
                                 .describe("External ID (max 75 characters)"),
                             tags: z
-                                .array(z.number())
+                                .array(z.coerce.number())
                                 .optional()
                                 .describe("Array of tag IDs"),
                             plaid_account_id: z
@@ -377,7 +383,7 @@ export function registerTransactionTools(server: McpServer) {
                             .optional()
                             .describe("External ID (max 75 characters)"),
                         tags: z
-                            .array(z.number())
+                            .array(z.coerce.number())
                             .optional()
                             .describe("Array of tag IDs"),
                         plaid_account_id: z
@@ -446,7 +452,7 @@ export function registerTransactionTools(server: McpServer) {
             description: "Remove one or more transactions from a split",
             inputSchema: {
                 parent_ids: z
-                    .array(z.number())
+                    .array(z.coerce.number())
                     .describe("Array of parent transaction IDs to unsplit"),
                 remove_parents: z
                     .boolean()
@@ -531,11 +537,11 @@ export function registerTransactionTools(server: McpServer) {
                     .describe("Category ID for the group"),
                 notes: z.string().optional().describe("Notes for the group"),
                 tags: z
-                    .array(z.number())
+                    .array(z.coerce.number())
                     .optional()
                     .describe("Array of tag IDs for the group"),
                 transaction_ids: z
-                    .array(z.number())
+                    .array(z.coerce.number())
                     .describe("Array of transaction IDs to group"),
             },
             annotations: {

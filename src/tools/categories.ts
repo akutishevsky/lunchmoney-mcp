@@ -209,7 +209,7 @@ export function registerCategoryTools(server: McpServer) {
                         "Whether or not transactions in this category should be excluded from calculated totals.",
                     ),
                 category_ids: z
-                    .array(z.number())
+                    .array(z.coerce.number())
                     .optional()
                     .describe(
                         "Array of category_id to include in the category group.",
@@ -380,7 +380,7 @@ export function registerCategoryTools(server: McpServer) {
                     .number()
                     .describe("Id of the parent group to add to."),
                 category_ids: z
-                    .array(z.number())
+                    .array(z.coerce.number())
                     .optional()
                     .describe(
                         "Array of category_id to include in the category group.",
