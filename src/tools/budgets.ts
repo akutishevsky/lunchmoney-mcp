@@ -79,8 +79,10 @@ export function registerBudgetTools(server: McpServer) {
                     .string()
                     .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Budget month start date in YYYY-MM-DD format"),
-                category_id: z.number().describe("Category ID for the budget"),
-                amount: z.number().describe("Budget amount"),
+                category_id: z.coerce
+                    .number()
+                    .describe("Category ID for the budget"),
+                amount: z.coerce.number().describe("Budget amount"),
                 currency: z
                     .string()
                     .length(3)
@@ -129,7 +131,7 @@ export function registerBudgetTools(server: McpServer) {
                     .string()
                     .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Budget month start date in YYYY-MM-DD format"),
-                category_id: z
+                category_id: z.coerce
                     .number()
                     .describe("Category ID for the budget to remove"),
             },
