@@ -49,7 +49,7 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Get hydrated details on a single category. Note that if this category is part of a category group, its properties (is_income, exclude_from_budget, exclude_from_totals) will inherit from the category group.",
             inputSchema: {
-                categoryId: z
+                categoryId: z.coerce
                     .number()
                     .describe(
                         "Id of the category to query. Should call the get_all_categories tool first to get the ids.",
@@ -120,7 +120,7 @@ export function registerCategoryTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe("Whether or not category should be archived."),
-                group_id: z
+                group_id: z.coerce
                     .number()
                     .optional()
                     .describe(
@@ -274,7 +274,7 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Update the properties for a single category or category group.",
             inputSchema: {
-                categoryId: z
+                categoryId: z.coerce
                     .number()
                     .describe(
                         "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids.",
@@ -316,7 +316,7 @@ export function registerCategoryTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe("Whether or not category should be archived."),
-                group_id: z
+                group_id: z.coerce
                     .number()
                     .optional()
                     .describe(
@@ -376,7 +376,7 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Add categories (either existing or new) to a single category group.",
             inputSchema: {
-                group_id: z
+                group_id: z.coerce
                     .number()
                     .describe("Id of the parent group to add to."),
                 category_ids: z
@@ -433,7 +433,7 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Delete a single category or category group. This will only work if there are no dependencies, such as existing budgets for the category, categorized transactions, categorized recurring items, etc. If there are dependents, this endpoint will return what the dependents are and how many there are.",
             inputSchema: {
-                category_id: z
+                category_id: z.coerce
                     .number()
                     .describe(
                         "Id of the category or the category group to delete.",
@@ -467,7 +467,7 @@ export function registerCategoryTools(server: McpServer) {
             description:
                 "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!",
             inputSchema: {
-                category_id: z
+                category_id: z.coerce
                     .number()
                     .describe(
                         "Id of the category or the category group to delete.",

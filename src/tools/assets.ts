@@ -177,7 +177,7 @@ export function registerAssetTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("Display name of the asset"),
-                balance: z
+                balance: z.coerce
                     .number()
                     .optional()
                     .describe("Current balance of the asset"),

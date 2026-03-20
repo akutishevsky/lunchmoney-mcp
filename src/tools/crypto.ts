@@ -40,10 +40,10 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Update a manually-managed cryptocurrency asset balance",
             inputSchema: {
-                crypto_id: z
+                crypto_id: z.coerce
                     .number()
                     .describe("ID of the crypto asset to update"),
-                balance: z
+                balance: z.coerce
                     .number()
                     .optional()
                     .describe("Updated balance of the crypto asset"),

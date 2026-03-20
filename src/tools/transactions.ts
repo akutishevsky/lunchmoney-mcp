@@ -28,15 +28,15 @@ export function registerTransactionTools(server: McpServer) {
                     .number()
                     .optional()
                     .describe("Filter by tag ID"),
-                recurring_id: z
+                recurring_id: z.coerce
                     .number()
                     .optional()
                     .describe("Filter by recurring expense ID"),
-                plaid_account_id: z
+                plaid_account_id: z.coerce
                     .number()
                     .optional()
                     .describe("Filter by Plaid account ID"),
-                category_id: z
+                category_id: z.coerce
                     .number()
                     .optional()
                     .describe("Filter by category ID"),
@@ -52,11 +52,11 @@ export function registerTransactionTools(server: McpServer) {
                     .string()
                     .optional()
                     .describe("Filter by status: cleared, uncleared, pending"),
-                offset: z
+                offset: z.coerce
                     .number()
                     .optional()
                     .describe("Number of transactions to skip"),
-                limit: z
+                limit: z.coerce
                     .number()
                     .optional()
                     .describe(
@@ -144,7 +144,7 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Get details of a specific transaction",
             inputSchema: {
-                transaction_id: z
+                transaction_id: z.coerce
                     .number()
                     .describe("ID of the transaction to retrieve"),
                 debit_as_negative: z
@@ -217,15 +217,15 @@ export function registerTransactionTools(server: McpServer) {
                                 .describe(
                                     "Three-letter lowercase currency code",
                                 ),
-                            category_id: z
+                            category_id: z.coerce
                                 .number()
                                 .optional()
                                 .describe("Category ID"),
-                            asset_id: z
+                            asset_id: z.coerce
                                 .number()
                                 .optional()
                                 .describe("Asset ID for manual accounts"),
-                            recurring_id: z
+                            recurring_id: z.coerce
                                 .number()
                                 .optional()
                                 .describe("Recurring expense ID"),
@@ -246,7 +246,7 @@ export function registerTransactionTools(server: McpServer) {
                                 .array(z.coerce.number())
                                 .optional()
                                 .describe("Array of tag IDs"),
-                            plaid_account_id: z
+                            plaid_account_id: z.coerce
                                 .number()
                                 .optional()
                                 .describe(
@@ -332,7 +332,7 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Update an existing transaction",
             inputSchema: {
-                transaction_id: z
+                transaction_id: z.coerce
                     .number()
                     .describe("ID of the transaction to update"),
                 transaction: z
@@ -357,15 +357,15 @@ export function registerTransactionTools(server: McpServer) {
                             .length(3)
                             .optional()
                             .describe("Three-letter lowercase currency code"),
-                        category_id: z
+                        category_id: z.coerce
                             .number()
                             .optional()
                             .describe("Category ID"),
-                        asset_id: z
+                        asset_id: z.coerce
                             .number()
                             .optional()
                             .describe("Asset ID for manual accounts"),
-                        recurring_id: z
+                        recurring_id: z.coerce
                             .number()
                             .optional()
                             .describe("Recurring expense ID"),
@@ -386,7 +386,7 @@ export function registerTransactionTools(server: McpServer) {
                             .array(z.coerce.number())
                             .optional()
                             .describe("Array of tag IDs"),
-                        plaid_account_id: z
+                        plaid_account_id: z.coerce
                             .number()
                             .optional()
                             .describe(
@@ -491,7 +491,7 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Get details of a transaction group",
             inputSchema: {
-                transaction_id: z
+                transaction_id: z.coerce
                     .number()
                     .describe("ID of the transaction group"),
             },
@@ -531,7 +531,7 @@ export function registerTransactionTools(server: McpServer) {
                     .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
                     .describe("Date in YYYY-MM-DD format"),
                 payee: z.string().describe("Payee name for the group"),
-                category_id: z
+                category_id: z.coerce
                     .number()
                     .optional()
                     .describe("Category ID for the group"),
@@ -580,7 +580,7 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Delete a transaction group or a single transaction.",
             inputSchema: {
-                transaction_id: z
+                transaction_id: z.coerce
                     .number()
                     .describe("ID of the transaction group to delete"),
             },
