@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.3] - 2026-03-20
+
+### Fixed
+
+- Use `z.coerce.number()` for all numeric tool parameters to accept string-typed values from MCP clients (fixes #8)
+
 ## [1.4.2] - 2026-02-18
 
 ### Added
