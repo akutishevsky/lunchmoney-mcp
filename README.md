@@ -9,6 +9,8 @@
 
 A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lunchmoney.app/), providing programmatic access to personal finance management through LunchMoney's API. Also available as an MCP Bundle (.mcpb) for easy installation in Claude Desktop.
 
+> **Heads up — v2.0.0 is a breaking release.** This server now targets LunchMoney's v2 API (`https://api.lunchmoney.dev/v2`, currently in alpha). It is not backwards-compatible with v1.x of this server: tool names, fields, and endpoint shapes have changed (for example, `assets` is now `manual_accounts`, `tags` arrays are now `tag_ids`, transaction `asset_id` is now `manual_account_id`, the `debit_as_negative` toggle is gone, and the budget summary moved to a new `/summary` endpoint). See [CHANGELOG.md](./CHANGELOG.md) for the full list. If you depend on v1.x, pin `@akutishevsky/lunchmoney-mcp@^1.4.3`.
+
 <a href="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@akutishevsky/lunchmoney-mcp/badge" alt="LunchMoney Server MCP server" />
 </a>
@@ -36,18 +38,18 @@ This MCP server enables AI assistants and other MCP clients to interact with Lun
 ### Comprehensive Tool Coverage
 
 - **User Management** - Access user account details
-- **Categories** - Create, update, and organize spending categories
-- **Tags** - Manage transaction tags
-- **Transactions** - Full CRUD operations on transactions with advanced filtering
-- **Recurring Items** - Track and manage recurring expenses
-- **Budgets** - Create and monitor budgets by category
-- **Assets** - Track manually-managed assets
-- **Plaid Accounts** - Manage connected bank accounts
-- **Cryptocurrency** - Track crypto holdings
+- **Categories** - Full CRUD on categories and category groups
+- **Tags** - Full CRUD for transaction tags
+- **Transactions** - Full CRUD with advanced filtering, bulk update, bulk delete, splits, groups, and file attachments
+- **Recurring Items** - Track and manage recurring expenses, including system-suggested items
+- **Budgets** - Per-period budget summary, account-wide budget settings, upsert, and delete
+- **Manual Accounts** - Full CRUD for manually-managed accounts (formerly known as "assets")
+- **Plaid Accounts** - List, retrieve, and trigger sync of connected bank accounts
+- **Cryptocurrency** - Track crypto holdings (a thin filter over manual accounts where `type=cryptocurrency`)
 
 ### Key Capabilities
 
-- Full integration with LunchMoney API v1
+- Full integration with LunchMoney API v2 (alpha)
 - Type-safe implementation with TypeScript and Zod validation
 - Token-efficient responses using [TOON](https://github.com/nicfontaine/toon) encoding instead of JSON, reducing token usage in AI conversations
 - Modular architecture for easy extension
@@ -158,11 +160,12 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 - "Remove the budget for Entertainment category"
 - "How much have I spent vs budgeted in each category?"
 
-### Asset Tracking
+### Manual Account Tracking
 
-- "List all my assets"
-- "Create a new asset for my savings account with a balance of $10,000"
+- "List all my manual accounts"
+- "Create a new manual account for my savings account with a balance of $10,000"
 - "Update my investment account balance to $25,000"
+- "Close my old credit card account"
 
 ### Recurring Expenses
 
@@ -197,55 +200,67 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 
 ### Category Tools
 
-- `get_all_categories` - List all spending categories
-- `get_single_category` - Get details for a specific category
-- `create_category` - Create a new category
-- `create_category_group` - Create a category group
-- `update_category` - Update category properties
-- `add_to_category_group` - Add categories to a group
-- `delete_category` - Delete a category
-- `force_delete_category` - Force delete with data cleanup
+- `get_all_categories` - List all categories (supports `format` and `is_group` filters)
+- `get_single_category` - Get details for a specific category or category group
+- `create_category` - Create a category or category group (set `is_group=true` plus `children`)
+- `update_category` - Update properties; replaces the children list on category groups
+- `delete_category` - Delete a category; pass `force=true` to override dependency check
 
 ### Tag Tools
 
-- `get_all_tags` - List all available tags
+- `get_all_tags` - List all tags
+- `get_single_tag` - Get a tag by ID
+- `create_tag` - Create a new tag
+- `update_tag` - Update tag properties
+- `delete_tag` - Delete a tag (with `force` to override dependents)
 
 ### Transaction Tools
 
-- `get_transactions` - List transactions with extensive filtering options
-- `get_single_transaction` - Get detailed transaction information
-- `create_transactions` - Create new transactions
-- `update_transaction` - Update existing transaction
-- `unsplit_transactions` - Remove transactions from split groups
-- `get_transaction_group` - Get transaction group details
-- `create_transaction_group` - Create a transaction group
-- `delete_transaction_group` - Delete a transaction group
+- `get_transactions` - List transactions with extensive filtering options (date range, account, category, tag, status, pending, metadata, files, etc)
+- `get_single_transaction` - Get full transaction details (always includes plaid_metadata, custom_metadata, files, and children for split/group parents)
+- `create_transactions` - Insert 1–500 transactions in one call
+- `update_transaction` - Partial update of one transaction
+- `delete_transaction` - Delete one transaction (cannot be split/group)
+- `update_transactions_bulk` - Bulk update 1–500 transactions
+- `delete_transactions_bulk` - Bulk delete 1–500 transactions by ID
+- `create_transaction_group` - Create a transaction group from existing transactions
+- `delete_transaction_group` - Ungroup a transaction group
+- `split_transaction` - Split a transaction into 2–500 children
+- `unsplit_transaction` - Undo a previous split
+- `attach_file_to_transaction` - Upload a local file (jpeg/png/heic/heif/pdf, ≤10MB)
+- `get_transaction_attachment_url` - Get a signed download URL for a file attachment
+- `delete_transaction_attachment` - Delete a file attachment
 
 ### Recurring Items Tools
 
-- `get_recurring_items` - List recurring items for a date range
+- `get_recurring_items` - List recurring items for a date range (`include_suggested` for system suggestions)
+- `get_single_recurring_item` - Get a recurring item by ID
 
 ### Budget Tools
 
-- `get_budget_summary` - Get budget summary by date range
-- `upsert_budget` - Create or update budget amounts
-- `remove_budget` - Remove budget for a category
+- `get_budget_summary` - Per-category budget summary (backed by `/summary`); supports occurrences, totals, rollover-pool toggles
+- `get_budget_settings` - Account-wide budget period and display settings
+- `upsert_budget` - Create or update a budget for a category and period
+- `remove_budget` - Remove a budget for a category and period
 
-### Asset Tools
+### Manual Account Tools
 
-- `get_all_assets` - List all manually-managed assets
-- `create_asset` - Create a new asset
-- `update_asset` - Update asset properties
+- `get_all_manual_accounts` - List all manually-managed accounts (formerly "assets")
+- `get_single_manual_account` - Get a manual account by ID
+- `create_manual_account` - Create a new manually-managed account
+- `update_manual_account` - Update properties of a manual account
+- `delete_manual_account` - Delete a manual account; optionally also delete its transactions / balance history
 
 ### Plaid Account Tools
 
 - `get_all_plaid_accounts` - List all connected Plaid accounts
-- `trigger_plaid_fetch` - Trigger fetch of latest data from Plaid
+- `get_single_plaid_account` - Get a Plaid account by ID
+- `trigger_plaid_fetch` - Trigger fetch of latest data from Plaid (optionally scoped to a date range or account)
 
 ### Crypto Tools
 
-- `get_all_crypto` - List all cryptocurrency assets
-- `update_manual_crypto` - Update balance for manually-managed crypto
+- `get_all_crypto` - List cryptocurrency holdings (filters `/manual_accounts` to type=cryptocurrency)
+- `update_manual_crypto` - Update the balance of a manually-managed cryptocurrency account
 
 ## Development
 
@@ -264,7 +279,7 @@ lunchmoney-mcp/
 │       ├── transactions.ts
 │       ├── recurring-items.ts
 │       ├── budgets.ts
-│       ├── assets.ts
+│       ├── manual-accounts.ts
 │       ├── plaid-accounts.ts
 │       └── crypto.ts
 ├── build/                 # Compiled JavaScript output
@@ -292,9 +307,10 @@ npm run build:mcpb
 
 ## API Reference
 
-The server implements the full LunchMoney API v1. For detailed API documentation, see:
+The server implements the full LunchMoney API v2. For detailed API documentation, see:
 
-- [LunchMoney API Documentation](https://lunchmoney.dev/)
+- [LunchMoney v2 API Documentation](https://alpha.lunchmoney.dev/v2)
+- [v2 Migration Guide](https://alpha.lunchmoney.dev/v2/migration-guide)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io/)
 
 ## Contributing

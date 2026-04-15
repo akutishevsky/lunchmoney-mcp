@@ -2,9 +2,9 @@
     "manifest_version": "0.3",
     "name": "lunchmoney",
     "display_name": "Lunch Money",
-    "version": "1.4.3",
+    "version": "2.0.0",
     "description": "Manage your Lunch Money finances with AI assistance",
-    "long_description": "Connect Claude to your Lunch Money account to analyze spending patterns, manage budgets, track transactions, and get insights about your finances. This extension provides full access to Lunch Money's API, enabling you to manage categories, transactions, budgets, assets, and more through natural language commands.",
+    "long_description": "Connect Claude to your Lunch Money account to analyze spending patterns, manage budgets, track transactions, and get insights about your finances. This extension provides full access to Lunch Money's v2 API, enabling you to manage categories, transactions, budgets, manual accounts, tags, recurring items, and more through natural language commands.",
     "author": {
         "name": "Anton Kutishevsky",
         "email": "akutishevsky@gmail.com",
@@ -26,119 +26,167 @@
     "tools": [
         {
             "name": "get_user",
-            "description": "Get details on the current user"
+            "description": "Get details on the current user."
         },
         {
             "name": "get_all_categories",
-            "description": "Get a flattened list of all categories in alphabetical order associated with the user's account."
+            "description": "Get a list of all categories. Supports format (flattened/nested) and is_group filter."
         },
         {
             "name": "get_single_category",
-            "description": "Get hydrated details on a single category. Note that if this category is part of a category group, its properties (is_income, exclude_from_budget, exclude_from_totals) will inherit from the category group."
+            "description": "Get details on a single category or category group, including children."
         },
         {
             "name": "create_category",
-            "description": "Create a single category."
-        },
-        {
-            "name": "create_category_group",
-            "description": "Create a single category group."
+            "description": "Create a category or category group. Set is_group=true and provide children to create a group."
         },
         {
             "name": "update_category",
-            "description": "Update the properties for a single category or category group."
-        },
-        {
-            "name": "add_to_category_group",
-            "description": "Add categories (either existing or new) to a single category group."
+            "description": "Update properties for a category or category group; supports children replacement on groups."
         },
         {
             "name": "delete_category",
-            "description": "Delete a single category or category group. This will only work if there are no dependencies, such as existing budgets for the category, categorized transactions, categorized recurring items, etc. If there are dependents, this endpoint will return what the dependents are and how many there are."
-        },
-        {
-            "name": "force_delete_category",
-            "description": "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!"
+            "description": "Delete a category or category group. Set force=true to override dependency check (irreversible). Returns structured dependents on HTTP 422."
         },
         {
             "name": "get_all_tags",
-            "description": "Get a list of all tags associated with the user's account."
+            "description": "Get a list of all tags."
         },
         {
-            "name": "get_transactions",
-            "description": "Retrieve transactions within a date range with optional filters"
+            "name": "get_single_tag",
+            "description": "Get details of a single tag by ID."
         },
         {
-            "name": "get_single_transaction",
-            "description": "Get details of a specific transaction"
+            "name": "create_tag",
+            "description": "Create a new tag (name, optional description, colors, archived)."
         },
         {
-            "name": "create_transactions",
-            "description": "Insert one or more transactions"
+            "name": "update_tag",
+            "description": "Update properties for an existing tag."
         },
         {
-            "name": "update_transaction",
-            "description": "Update an existing transaction"
+            "name": "delete_tag",
+            "description": "Delete a tag. Set force=true to override dependency check (irreversible)."
         },
         {
-            "name": "unsplit_transactions",
-            "description": "Remove one or more transactions from a split"
+            "name": "get_all_manual_accounts",
+            "description": "Get a list of all manually-managed accounts (formerly assets)."
         },
         {
-            "name": "get_transaction_group",
-            "description": "Get details of a transaction group"
+            "name": "get_single_manual_account",
+            "description": "Get details of a single manual account by ID."
         },
         {
-            "name": "create_transaction_group",
-            "description": "Create a transaction group"
+            "name": "create_manual_account",
+            "description": "Create a new manually-managed account."
         },
         {
-            "name": "delete_transaction_group",
-            "description": "Delete a transaction group or a single transaction."
+            "name": "update_manual_account",
+            "description": "Update an existing manually-managed account."
         },
         {
-            "name": "get_recurring_items",
-            "description": "Retrieve a list of recurring items to expect for a specified month"
-        },
-        {
-            "name": "get_budget_summary",
-            "description": "Get budget summary for a specific date range. The budgeted and spending amounts will be broken down by month."
-        },
-        {
-            "name": "upsert_budget",
-            "description": "Create or update a budget for a specific category and month"
-        },
-        {
-            "name": "remove_budget",
-            "description": "Remove a budget for a specific category and month"
-        },
-        {
-            "name": "get_all_assets",
-            "description": "Get a list of all manually-managed assets associated with the user"
-        },
-        {
-            "name": "create_asset",
-            "description": "Create a new manually-managed asset"
-        },
-        {
-            "name": "update_asset",
-            "description": "Update an existing manually-managed asset"
+            "name": "delete_manual_account",
+            "description": "Delete a manual account. Optionally also delete its transactions and balance history."
         },
         {
             "name": "get_all_plaid_accounts",
-            "description": "Get a list of all Plaid accounts associated with the user"
+            "description": "Get a list of all Plaid (synced) accounts."
+        },
+        {
+            "name": "get_single_plaid_account",
+            "description": "Get details of a single Plaid account by ID."
         },
         {
             "name": "trigger_plaid_fetch",
-            "description": "Trigger a fetch of latest data from Plaid (Experimental). Note that fetching may take up to 5 minutes."
+            "description": "Trigger a fetch of latest data from Plaid. Optionally scope by date range and/or account ID."
+        },
+        {
+            "name": "get_recurring_items",
+            "description": "Retrieve recurring items expected for a date range; optionally include system-suggested items."
+        },
+        {
+            "name": "get_single_recurring_item",
+            "description": "Retrieve a single recurring item by ID; optional date range populates `matches`."
+        },
+        {
+            "name": "get_budget_summary",
+            "description": "Get a per-category budget summary for a date range (backed by GET /summary). Supports occurrences, totals, and rollover-pool toggles."
+        },
+        {
+            "name": "get_budget_settings",
+            "description": "Get the account's budget period and display settings (granularity, anchor date, etc)."
+        },
+        {
+            "name": "upsert_budget",
+            "description": "Create or update a budget for a category and budget period."
+        },
+        {
+            "name": "remove_budget",
+            "description": "Remove the budget for a category and budget period. Idempotent."
+        },
+        {
+            "name": "get_transactions",
+            "description": "Retrieve transactions with rich filters (date range, account, category, tag, status, pending, metadata, etc). Returns has_more for pagination."
+        },
+        {
+            "name": "get_single_transaction",
+            "description": "Get details of a specific transaction (always includes plaid_metadata, custom_metadata, files, and children for split/group parents)."
+        },
+        {
+            "name": "create_transactions",
+            "description": "Insert one or more transactions (1-500). Returns inserts and skipped duplicates."
+        },
+        {
+            "name": "update_transaction",
+            "description": "Update an existing transaction (partial update). Set update_balance=false to skip account balance recompute."
+        },
+        {
+            "name": "delete_transaction",
+            "description": "Delete a single transaction. Cannot delete split or grouped transactions."
+        },
+        {
+            "name": "update_transactions_bulk",
+            "description": "Bulk update 1-500 transactions in a single call."
+        },
+        {
+            "name": "delete_transactions_bulk",
+            "description": "Bulk delete 1-500 transactions by ID."
+        },
+        {
+            "name": "create_transaction_group",
+            "description": "Create a transaction group from 2-500 existing transactions."
+        },
+        {
+            "name": "delete_transaction_group",
+            "description": "Delete (ungroup) a transaction group. Children revert to ungrouped transactions."
+        },
+        {
+            "name": "split_transaction",
+            "description": "Split a transaction into 2-500 child transactions whose amounts sum to the parent."
+        },
+        {
+            "name": "unsplit_transaction",
+            "description": "Undo a previous split, deleting children and restoring the parent."
+        },
+        {
+            "name": "attach_file_to_transaction",
+            "description": "Upload a local file (jpeg/png/heic/heif/pdf, max 10MB) and attach it to a transaction."
+        },
+        {
+            "name": "get_transaction_attachment_url",
+            "description": "Get a short-lived signed download URL for a transaction file attachment."
+        },
+        {
+            "name": "delete_transaction_attachment",
+            "description": "Delete a transaction file attachment. Irreversible."
         },
         {
             "name": "get_all_crypto",
-            "description": "Get a list of all cryptocurrency assets associated with the user"
+            "description": "Get cryptocurrency holdings (filters /manual_accounts to type=cryptocurrency)."
         },
         {
             "name": "update_manual_crypto",
-            "description": "Update a manually-managed cryptocurrency asset balance"
+            "description": "Update the balance of a manually-managed cryptocurrency account."
         }
     ],
     "prompts_generated": true,
