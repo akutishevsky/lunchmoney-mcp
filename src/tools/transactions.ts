@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
@@ -7,6 +9,36 @@ import {
     handleApiError,
     catchError,
 } from "../api.js";
+
+const splitChildSchema = z.object({
+    amount: z.coerce
+        .number()
+        .describe(
+            "Amount of this split. Sum of all children must equal the parent's amount.",
+        ),
+    payee: z
+        .string()
+        .max(140)
+        .optional()
+        .describe("Defaults to the parent's payee."),
+    date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+        .optional()
+        .describe("Defaults to the parent's date."),
+    category_id: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Category ID. Defaults to parent's category. Cannot be a category group.",
+        ),
+    tag_ids: z.array(z.coerce.number()).optional(),
+    notes: z
+        .string()
+        .max(350)
+        .optional()
+        .describe("Defaults to the parent's notes."),
+});
 
 const dateString = z
     .string()
@@ -599,4 +631,240 @@ export function registerTransactionTools(server: McpServer) {
             }
         },
     );
+
+    server.registerTool(
+        "split_transaction",
+        {
+            description:
+                "Split an existing transaction into 2-500 child transactions. The sum of child amounts must equal the parent's amount. After splitting, the parent is hidden from get_transactions and accessible via get_single_transaction (returns the parent with `children`).",
+            inputSchema: {
+                transaction_id: z.coerce
+                    .number()
+                    .describe("ID of the transaction to split."),
+                child_transactions: z
+                    .array(splitChildSchema)
+                    .min(2)
+                    .max(500)
+                    .describe(
+                        "Children to create. Sum of amounts must equal the parent's amount.",
+                    ),
+            },
+            annotations: {
+                idempotentHint: false,
+            },
+        },
+        async ({ transaction_id, child_transactions }) => {
+            try {
+                const response = await api.post(
+                    `/transactions/split/${transaction_id}`,
+                    { child_transactions },
+                );
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to split transaction",
+                    );
+                }
+
+                return dataResponse(await response.json());
+            } catch (error) {
+                return catchError(error, "Failed to split transaction");
+            }
+        },
+    );
+
+    server.registerTool(
+        "unsplit_transaction",
+        {
+            description:
+                "Unsplit a previously split transaction by deleting its children and restoring the parent. Pass the parent (split_parent_id) — not a child — as the path id.",
+            inputSchema: {
+                transaction_id: z.coerce
+                    .number()
+                    .describe(
+                        "ID of the previously split parent transaction. Use the split_parent_id of a split child to find it.",
+                    ),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
+        },
+        async ({ transaction_id }) => {
+            try {
+                const response = await api.delete(
+                    `/transactions/split/${transaction_id}`,
+                );
+
+                if (response.status === 204) {
+                    return successResponse("Transaction unsplit.");
+                }
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to unsplit transaction",
+                    );
+                }
+
+                return successResponse("Transaction unsplit.");
+            } catch (error) {
+                return catchError(error, "Failed to unsplit transaction");
+            }
+        },
+    );
+
+    server.registerTool(
+        "attach_file_to_transaction",
+        {
+            description:
+                "Attach a local file (max 10MB) to a transaction. Allowed types: image/jpeg, image/png, image/heic, image/heif, application/pdf. The file is read from the local filesystem of the host running this MCP server.",
+            inputSchema: {
+                transaction_id: z.coerce
+                    .number()
+                    .describe("ID of the transaction to attach the file to."),
+                file_path: z
+                    .string()
+                    .describe(
+                        "Absolute or relative path to the file on the local filesystem.",
+                    ),
+                content_type: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "MIME type. If omitted, the server infers it from the file extension.",
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Optional notes describing the attachment."),
+            },
+            annotations: {
+                idempotentHint: false,
+            },
+        },
+        async ({ transaction_id, file_path, content_type, notes }) => {
+            try {
+                const data = await readFile(file_path);
+                const mime =
+                    content_type ??
+                    inferMimeType(file_path) ??
+                    "application/octet-stream";
+                const blob = new Blob([new Uint8Array(data)], { type: mime });
+
+                const formData = new FormData();
+                formData.append("file", blob, basename(file_path));
+                if (notes !== undefined) formData.append("notes", notes);
+
+                const response = await api.upload(
+                    `/transactions/${transaction_id}/attachments`,
+                    formData,
+                );
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to attach file to transaction",
+                    );
+                }
+
+                return dataResponse(await response.json());
+            } catch (error) {
+                return catchError(
+                    error,
+                    "Failed to attach file to transaction",
+                );
+            }
+        },
+    );
+
+    server.registerTool(
+        "get_transaction_attachment_url",
+        {
+            description:
+                "Get a short-lived signed download URL for a transaction file attachment. The response includes the URL and an `expires_at` timestamp.",
+            inputSchema: {
+                file_id: z.coerce
+                    .number()
+                    .describe("ID of the file attachment."),
+            },
+            annotations: {
+                readOnlyHint: true,
+            },
+        },
+        async ({ file_id }) => {
+            try {
+                const response = await api.get(
+                    `/transactions/attachments/${file_id}`,
+                );
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to get attachment URL",
+                    );
+                }
+
+                return dataResponse(await response.json());
+            } catch (error) {
+                return catchError(error, "Failed to get attachment URL");
+            }
+        },
+    );
+
+    server.registerTool(
+        "delete_transaction_attachment",
+        {
+            description: "Delete a transaction file attachment. Irreversible.",
+            inputSchema: {
+                file_id: z.coerce
+                    .number()
+                    .describe("ID of the file attachment to delete."),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
+        },
+        async ({ file_id }) => {
+            try {
+                const response = await api.delete(
+                    `/transactions/attachments/${file_id}`,
+                );
+
+                if (response.status === 204) {
+                    return successResponse("Attachment deleted.");
+                }
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to delete attachment",
+                    );
+                }
+
+                return successResponse("Attachment deleted.");
+            } catch (error) {
+                return catchError(error, "Failed to delete attachment");
+            }
+        },
+    );
+}
+
+function inferMimeType(path: string): string | null {
+    const ext = path.toLowerCase().split(".").pop();
+    switch (ext) {
+        case "jpg":
+        case "jpeg":
+            return "image/jpeg";
+        case "png":
+            return "image/png";
+        case "heic":
+            return "image/heic";
+        case "heif":
+            return "image/heif";
+        case "pdf":
+            return "application/pdf";
+        default:
+            return null;
+    }
 }
