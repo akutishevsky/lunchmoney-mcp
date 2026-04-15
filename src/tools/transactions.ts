@@ -8,7 +8,17 @@ import {
     successResponse,
     handleApiError,
     catchError,
+    errorResponse,
 } from "../api.js";
+
+const ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/heic",
+    "image/heif",
+    "application/pdf",
+]);
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 const splitChildSchema = z.object({
     amount: z.coerce
@@ -745,11 +755,24 @@ export function registerTransactionTools(server: McpServer) {
         },
         async ({ transaction_id, file_path, content_type, notes }) => {
             try {
+                const mime = content_type ?? inferMimeType(file_path);
+                if (!mime || !ALLOWED_ATTACHMENT_MIME_TYPES.has(mime)) {
+                    // The v2 API documents these as the only permitted types
+                    // but does not enforce the restriction server-side, so
+                    // we validate client-side to fail fast and prevent
+                    // orphaned attachments with type=unknown.
+                    return errorResponse(
+                        `Failed to attach file to transaction: file type ${mime ?? "unknown"} not allowed. Allowed types are: ${[...ALLOWED_ATTACHMENT_MIME_TYPES].join(", ")}`,
+                    );
+                }
+
                 const data = await readFile(file_path);
-                const mime =
-                    content_type ??
-                    inferMimeType(file_path) ??
-                    "application/octet-stream";
+                if (data.byteLength > MAX_ATTACHMENT_BYTES) {
+                    return errorResponse(
+                        `Failed to attach file to transaction: file size ${data.byteLength} bytes exceeds maximum of ${MAX_ATTACHMENT_BYTES} bytes (10MB).`,
+                    );
+                }
+
                 const blob = new Blob([new Uint8Array(data)], { type: mime });
 
                 const formData = new FormData();

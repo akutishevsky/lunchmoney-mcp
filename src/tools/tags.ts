@@ -8,6 +8,15 @@ import {
     successResponse,
 } from "../api.js";
 
+// The v2 API returns HTTP 500 if a color value includes a leading `#`.
+// Strip it so callers can pass either `#cccccc` or `cccccc` interchangeably.
+function normalizeColor(
+    value: string | null | undefined,
+): string | null | undefined {
+    if (value === undefined || value === null) return value;
+    return value.startsWith("#") ? value.slice(1) : value;
+}
+
 export function registerTagTools(server: McpServer) {
     server.registerTool(
         "get_all_tags",
@@ -107,9 +116,10 @@ export function registerTagTools(server: McpServer) {
                 if (description !== undefined)
                     requestBody.description = description;
                 if (text_color !== undefined)
-                    requestBody.text_color = text_color;
+                    requestBody.text_color = normalizeColor(text_color);
                 if (background_color !== undefined)
-                    requestBody.background_color = background_color;
+                    requestBody.background_color =
+                        normalizeColor(background_color);
                 if (archived !== undefined) requestBody.archived = archived;
 
                 const response = await api.post("/tags", requestBody);
@@ -155,9 +165,10 @@ export function registerTagTools(server: McpServer) {
                 if (description !== undefined)
                     requestBody.description = description;
                 if (text_color !== undefined)
-                    requestBody.text_color = text_color;
+                    requestBody.text_color = normalizeColor(text_color);
                 if (background_color !== undefined)
-                    requestBody.background_color = background_color;
+                    requestBody.background_color =
+                        normalizeColor(background_color);
                 if (archived !== undefined) requestBody.archived = archived;
 
                 const response = await api.put(`/tags/${tagId}`, requestBody);
