@@ -14,7 +14,7 @@ const initializeConfig = (): Config => {
 
     config = {
         lunchmoneyApiToken: process.env.LUNCHMONEY_API_TOKEN,
-        baseUrl: "https://dev.lunchmoney.app/v1",
+        baseUrl: "https://api.lunchmoney.dev/v2",
     };
 
     return config;
