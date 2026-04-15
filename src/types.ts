@@ -333,6 +333,3 @@ export interface SummaryResponse {
     totals?: SummaryTotals;
     rollover_pool?: SummaryRolloverPool | null;
 }
-
-export type Asset = ManualAccount;
-export type Crypto = ManualAccount;
