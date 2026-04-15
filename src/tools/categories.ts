@@ -1,6 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { api, dataResponse, handleApiError, catchError } from "../api.js";
+import {
+    api,
+    dataResponse,
+    handleApiError,
+    catchError,
+    successResponse,
+} from "../api.js";
 import { Category } from "../types.js";
 
 export function registerCategoryTools(server: McpServer) {
@@ -8,24 +14,36 @@ export function registerCategoryTools(server: McpServer) {
         "get_all_categories",
         {
             description:
-                "Get a flattened list of all categories in alphabetical order associated with the user's account.",
+                "Get a list of all categories associated with the user's account. Returns categories in alphabetical order.",
             inputSchema: {
                 format: z
-                    .string()
+                    .enum(["flattened", "nested"])
                     .optional()
                     .describe(
-                        "Can either flattened or nested. If flattened, returns a singular array of categories, ordered alphabetically. If nested, returns top-level categories (either category groups or categories not part of a category group) in an array. Subcategories are nested within the category group under the property children.",
+                        "If `flattened`, returns a singular array of categories. If `nested`, returns top-level categories (either category groups or categories not part of a category group) in an array, with subcategories nested within the category group under the property children. Defaults to flattened.",
+                    ),
+                is_group: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "If true, returns only category groups. If false, returns only categories that are not category groups.",
                     ),
             },
             annotations: {
                 readOnlyHint: true,
             },
         },
-        async ({ format: formatParam }) => {
+        async ({ format, is_group }) => {
             try {
-                const format = formatParam || "flattened";
+                const params = new URLSearchParams();
+                if (format) params.append("format", format);
+                if (is_group !== undefined)
+                    params.append("is_group", String(is_group));
 
-                const response = await api.get(`/categories?format=${format}`);
+                const qs = params.toString();
+                const response = await api.get(
+                    `/categories${qs ? `?${qs}` : ""}`,
+                );
 
                 if (!response.ok) {
                     return handleApiError(
@@ -34,9 +52,7 @@ export function registerCategoryTools(server: McpServer) {
                     );
                 }
 
-                const categories: Category[] = await response.json();
-
-                return dataResponse(categories);
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to get all categories");
             }
@@ -47,12 +63,12 @@ export function registerCategoryTools(server: McpServer) {
         "get_single_category",
         {
             description:
-                "Get hydrated details on a single category. Note that if this category is part of a category group, its properties (is_income, exclude_from_budget, exclude_from_totals) will inherit from the category group.",
+                "Get details on a single category or category group, including the list of children categories for category groups.",
             inputSchema: {
                 categoryId: z.coerce
                     .number()
                     .describe(
-                        "Id of the category to query. Should call the get_all_categories tool first to get the ids.",
+                        "Id of the category to query. Call get_all_categories first to discover ids.",
                     ),
             },
             annotations: {
@@ -82,49 +98,58 @@ export function registerCategoryTools(server: McpServer) {
     server.registerTool(
         "create_category",
         {
-            description: "Create a single category.",
+            description:
+                "Create a new category or a category group. Set is_group=true to create a category group; supply children as an array of existing category IDs and/or strings (names of new sub-categories to create).",
             inputSchema: {
                 name: z
                     .string()
                     .min(1)
-                    .max(40)
-                    .describe(
-                        "Name of category. Must be between 1 and 40 characters.",
-                    ),
+                    .max(100)
+                    .describe("Name of the category. 1-100 characters."),
                 description: z
                     .string()
-                    .max(140)
+                    .max(200)
                     .optional()
-                    .describe(
-                        "Description of category. Must be less than 140 characters.",
-                    ),
+                    .describe("Optional description. Up to 200 characters."),
                 is_income: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Whether or not transactions in this category should be treated as income.",
+                        "Whether transactions in this category should be treated as income.",
                     ),
                 exclude_from_budget: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Whether or not transactions in this category should be excluded from budgets.",
+                        "Whether transactions in this category should be excluded from budgets.",
                     ),
                 exclude_from_totals: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals.",
+                        "Whether transactions in this category should be excluded from calculated totals.",
                     ),
                 archived: z
                     .boolean()
                     .optional()
-                    .describe("Whether or not category should be archived."),
+                    .describe("Whether the category should be archived."),
+                is_group: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "If true, creates a category group instead of a category. When true, group_id may not be set; use children to assign existing categories.",
+                    ),
                 group_id: z.coerce
                     .number()
                     .optional()
                     .describe(
-                        "Assigns the newly-created category to an existing category group.",
+                        "If set, assigns the new category to an existing category group. Cannot be set if is_group is true.",
+                    ),
+                children: z
+                    .array(z.union([z.coerce.number(), z.string()]))
+                    .optional()
+                    .describe(
+                        "Only valid when is_group is true. Array of existing category IDs (numbers) and/or names of new sub-categories to create (strings).",
                     ),
             },
             annotations: {
@@ -138,7 +163,9 @@ export function registerCategoryTools(server: McpServer) {
             exclude_from_budget,
             exclude_from_totals,
             archived,
+            is_group,
             group_id,
+            children,
         }) => {
             try {
                 const requestBody: Record<string, unknown> = { name };
@@ -151,7 +178,9 @@ export function registerCategoryTools(server: McpServer) {
                 if (exclude_from_totals !== undefined)
                     requestBody.exclude_from_totals = exclude_from_totals;
                 if (archived !== undefined) requestBody.archived = archived;
+                if (is_group !== undefined) requestBody.is_group = is_group;
                 if (group_id !== undefined) requestBody.group_id = group_id;
+                if (children !== undefined) requestBody.children = children;
 
                 const response = await api.post("/categories", requestBody);
 
@@ -162,108 +191,9 @@ export function registerCategoryTools(server: McpServer) {
                     );
                 }
 
-                const category: Category = await response.json();
-
-                return dataResponse(category);
-            } catch (error) {
-                return catchError(error, "Failed to create category");
-            }
-        },
-    );
-
-    server.registerTool(
-        "create_category_group",
-        {
-            description: "Create a single category group.",
-            inputSchema: {
-                name: z
-                    .string()
-                    .min(1)
-                    .max(40)
-                    .describe(
-                        "Name of category. Must be between 1 and 40 characters.",
-                    ),
-                description: z
-                    .string()
-                    .max(140)
-                    .optional()
-                    .describe(
-                        "Description of category. Must be less than 140 characters.",
-                    ),
-                is_income: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be treated as income.",
-                    ),
-                exclude_from_budget: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be excluded from budgets.",
-                    ),
-                exclude_from_totals: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals.",
-                    ),
-                category_ids: z
-                    .array(z.coerce.number())
-                    .optional()
-                    .describe(
-                        "Array of category_id to include in the category group.",
-                    ),
-                new_categories: z
-                    .array(z.string())
-                    .optional()
-                    .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group.",
-                    ),
-            },
-            annotations: {
-                idempotentHint: false,
-            },
-        },
-        async ({
-            name,
-            description,
-            is_income,
-            exclude_from_budget,
-            exclude_from_totals,
-            category_ids,
-            new_categories,
-        }) => {
-            try {
-                const requestBody: Record<string, unknown> = { name };
-
-                if (description !== undefined)
-                    requestBody.description = description;
-                if (is_income !== undefined) requestBody.is_income = is_income;
-                if (exclude_from_budget !== undefined)
-                    requestBody.exclude_from_budget = exclude_from_budget;
-                if (exclude_from_totals !== undefined)
-                    requestBody.exclude_from_totals = exclude_from_totals;
-                if (category_ids && category_ids.length > 0)
-                    requestBody.category_ids = category_ids;
-                if (new_categories && new_categories.length > 0)
-                    requestBody.new_categories = new_categories;
-
-                const response = await api.post(
-                    "/categories/group",
-                    requestBody,
-                );
-
-                if (!response.ok) {
-                    return handleApiError(
-                        response,
-                        "Failed to create category group",
-                    );
-                }
-
                 return dataResponse(await response.json());
             } catch (error) {
-                return catchError(error, "Failed to create category group");
+                return catchError(error, "Failed to create category");
             }
         },
     );
@@ -272,55 +202,40 @@ export function registerCategoryTools(server: McpServer) {
         "update_category",
         {
             description:
-                "Update the properties for a single category or category group.",
+                "Update properties for an existing category or category group. For category groups, supplying children replaces the group's full child list. Cannot be used to convert between category and category group.",
             inputSchema: {
                 categoryId: z.coerce
                     .number()
                     .describe(
-                        "Id of the category or category group to update. Execute the get_all_categories tool first, to get the category ids.",
+                        "Id of the category or category group to update.",
                     ),
                 name: z
                     .string()
                     .min(1)
-                    .max(40)
+                    .max(100)
                     .optional()
-                    .describe(
-                        "Name of category. Must be between 1 and 40 characters.",
-                    ),
+                    .describe("New name. 1-100 characters."),
                 description: z
                     .string()
-                    .max(140)
+                    .max(200)
                     .optional()
-                    .describe(
-                        "Description of category. Must be less than 140 characters.",
-                    ),
-                is_income: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be treated as income.",
-                    ),
-                exclude_from_budget: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be excluded from budgets.",
-                    ),
-                exclude_from_totals: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Whether or not transactions in this category should be excluded from calculated totals.",
-                    ),
-                archived: z
-                    .boolean()
-                    .optional()
-                    .describe("Whether or not category should be archived."),
+                    .describe("New description. Up to 200 characters."),
+                is_income: z.boolean().optional(),
+                exclude_from_budget: z.boolean().optional(),
+                exclude_from_totals: z.boolean().optional(),
+                archived: z.boolean().optional(),
                 group_id: z.coerce
                     .number()
+                    .nullable()
                     .optional()
                     .describe(
-                        "Assigns the category to an existing category group.",
+                        "Move this category into the specified category group, or null to remove from any group.",
+                    ),
+                children: z
+                    .array(z.union([z.coerce.number(), z.string()]))
+                    .optional()
+                    .describe(
+                        "Only valid for category groups. Replaces the group's full children list. Existing IDs (numbers) keep/move categories; strings create new sub-categories.",
                     ),
             },
             annotations: {
@@ -336,6 +251,7 @@ export function registerCategoryTools(server: McpServer) {
             exclude_from_totals,
             archived,
             group_id,
+            children,
         }) => {
             try {
                 const requestBody: Record<string, unknown> = {};
@@ -350,6 +266,7 @@ export function registerCategoryTools(server: McpServer) {
                     requestBody.exclude_from_totals = exclude_from_totals;
                 if (archived !== undefined) requestBody.archived = archived;
                 if (group_id !== undefined) requestBody.group_id = group_id;
+                if (children !== undefined) requestBody.children = children;
 
                 const response = await api.put(
                     `/categories/${categoryId}`,
@@ -371,83 +288,42 @@ export function registerCategoryTools(server: McpServer) {
     );
 
     server.registerTool(
-        "add_to_category_group",
-        {
-            description:
-                "Add categories (either existing or new) to a single category group.",
-            inputSchema: {
-                group_id: z.coerce
-                    .number()
-                    .describe("Id of the parent group to add to."),
-                category_ids: z
-                    .array(z.coerce.number())
-                    .optional()
-                    .describe(
-                        "Array of category_id to include in the category group.",
-                    ),
-                new_categories: z
-                    .array(z.string())
-                    .optional()
-                    .describe(
-                        "Array of strings representing new categories to create and subsequently include in the category group.",
-                    ),
-            },
-            annotations: {
-                idempotentHint: false,
-            },
-        },
-        async ({ group_id, category_ids, new_categories }) => {
-            try {
-                const requestBody: Record<string, unknown> = {};
-
-                if (category_ids && category_ids.length > 0) {
-                    requestBody.category_ids = category_ids;
-                }
-
-                if (new_categories && new_categories.length > 0) {
-                    requestBody.new_categories = new_categories;
-                }
-
-                const response = await api.post(
-                    `/categories/group/${group_id}/add`,
-                    requestBody,
-                );
-
-                if (!response.ok) {
-                    return handleApiError(
-                        response,
-                        "Failed to add to category group",
-                    );
-                }
-
-                return dataResponse(await response.json());
-            } catch (error) {
-                return catchError(error, "Failed to add to category group");
-            }
-        },
-    );
-
-    server.registerTool(
         "delete_category",
         {
             description:
-                "Delete a single category or category group. This will only work if there are no dependencies, such as existing budgets for the category, categorized transactions, categorized recurring items, etc. If there are dependents, this endpoint will return what the dependents are and how many there are.",
+                "Delete a single category or category group. By default fails (HTTP 422) if dependencies exist, returning a structured `dependents` payload. Set force=true to delete and disassociate from all related budgets, transactions, recurring items, etc. Force delete is irreversible.",
             inputSchema: {
                 category_id: z.coerce
                     .number()
                     .describe(
-                        "Id of the category or the category group to delete.",
+                        "Id of the category or category group to delete.",
+                    ),
+                force: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "If true, force deletion even if dependencies exist (irreversible).",
                     ),
             },
             annotations: {
                 destructiveHint: true,
             },
         },
-        async ({ category_id }) => {
+        async ({ category_id, force }) => {
             try {
-                const response = await api.delete(`/categories/${category_id}`);
+                const path = force
+                    ? `/categories/${category_id}?force=true`
+                    : `/categories/${category_id}`;
+                const response = await api.delete(path);
+
+                if (response.status === 204) {
+                    return successResponse("Category deleted.");
+                }
 
                 if (!response.ok) {
+                    if (response.status === 422) {
+                        return dataResponse(await response.json());
+                    }
                     return handleApiError(
                         response,
                         "Failed to delete category",
@@ -457,42 +333,6 @@ export function registerCategoryTools(server: McpServer) {
                 return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to delete category");
-            }
-        },
-    );
-
-    server.registerTool(
-        "force_delete_category",
-        {
-            description:
-                "Delete a single category or category group and along with it, disassociate the category from any transactions, recurring items, budgets, etc. Note: it is best practice to first try the Delete Category endpoint to ensure you don't accidentally delete any data. Disassociation/deletion of the data arising from this endpoint is irreversible!",
-            inputSchema: {
-                category_id: z.coerce
-                    .number()
-                    .describe(
-                        "Id of the category or the category group to delete.",
-                    ),
-            },
-            annotations: {
-                destructiveHint: true,
-            },
-        },
-        async ({ category_id }) => {
-            try {
-                const response = await api.delete(
-                    `/categories/${category_id}/force`,
-                );
-
-                if (!response.ok) {
-                    return handleApiError(
-                        response,
-                        "Failed to force delete category",
-                    );
-                }
-
-                return dataResponse(await response.json());
-            } catch (error) {
-                return catchError(error, "Failed to force delete category");
             }
         },
     );
