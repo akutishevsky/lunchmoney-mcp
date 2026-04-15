@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCP (Model Context Protocol) server for the LunchMoney personal finance API. Provides 29 tools across 9 domains (transactions, categories, budgets, assets, tags, recurring items, user, Plaid accounts, crypto). Uses stdio transport and is published to npm as `@akutishevsky/lunchmoney-mcp`.
+MCP (Model Context Protocol) server for the LunchMoney personal finance API (v2). Provides 41 tools across 9 domains (transactions, categories, budgets, manual accounts, tags, recurring items, user, Plaid accounts, crypto). Uses stdio transport and is published to npm as `@akutishevsky/lunchmoney-mcp`.
 
 ## Commands
 
@@ -21,7 +21,7 @@ A husky pre-commit hook runs `npm run format` automatically before every commit.
 
 **Entry point:** `src/index.ts` — creates `McpServer`, registers all tool modules, initializes config, connects via `StdioServerTransport`.
 
-**Config:** `src/config.ts` — singleton initialized at startup via `initializeConfig()`. Requires `LUNCHMONEY_API_TOKEN` env var. Base URL (`https://dev.lunchmoney.app/v1`) is hardcoded. Access via `getConfig()`.
+**Config:** `src/config.ts` — singleton initialized at startup via `initializeConfig()`. Requires `LUNCHMONEY_API_TOKEN` env var. Base URL (`https://api.lunchmoney.dev/v2`) is hardcoded. Access via `getConfig()`.
 
 **Debug logging:** Set `LUNCHMONEY_DEBUG=true` to log API requests and responses (method, path, status, duration, body) to stderr. Controlled via `isDebug()` in `src/api.ts`.
 
@@ -51,21 +51,19 @@ server.registerTool(
         },
     },
     async ({ field }) => {
-        const { baseUrl, lunchmoneyApiToken } = getConfig();
-        const response = await fetch(`${baseUrl}/endpoint`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${lunchmoneyApiToken}` },
-        });
+        const response = await api.get(`/endpoint`);
         if (!response.ok) {
-            return errorResponse(
-                await getErrorMessage(response, "Failed to do something"),
-            );
+            return handleApiError(response, "Failed to do something");
         }
-        const data = await response.json();
-        return { content: [{ type: "text", text: formatData(data) }] };
+        return dataResponse(await response.json());
     },
 );
 ```
+
+In practice, prefer the shared helpers from `src/api.ts`:
+`api.{get,post,put,delete,upload}` (which include retry, debug
+logging, and auth), plus `dataResponse`, `successResponse`,
+`handleApiError`, and `catchError`.
 
 Key conventions:
 

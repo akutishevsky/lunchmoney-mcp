@@ -85,11 +85,70 @@ async function apiRequest(
     throw new Error(`Max retries exceeded for ${method} ${path}`);
 }
 
+async function apiUpload(
+    method: string,
+    path: string,
+    formData: FormData,
+): Promise<Response> {
+    const { baseUrl, lunchmoneyApiToken } = getConfig();
+
+    const headers: Record<string, string> = {
+        Authorization: `Bearer ${lunchmoneyApiToken}`,
+    };
+
+    const options: RequestInit = {
+        method,
+        headers,
+        body: formData,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+    };
+
+    const url = `${baseUrl}${path}`;
+
+    if (isDebug()) {
+        console.error(`[API Upload] ${method} ${path}`);
+    }
+
+    const startTime = Date.now();
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        const response = await fetch(url, options);
+
+        if (
+            RETRYABLE_STATUS_CODES.has(response.status) &&
+            attempt < MAX_RETRIES
+        ) {
+            const delay = getRetryDelay(response, attempt);
+            console.error(
+                `Retrying ${method} ${path} (${response.status}) in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})`,
+            );
+            await sleep(delay);
+            continue;
+        }
+
+        if (isDebug()) {
+            const duration = Date.now() - startTime;
+            const clone = response.clone();
+            clone.text().then((text) => {
+                console.error(
+                    `[API Upload Response] ${method} ${path} | Status: ${response.status} | Duration: ${duration}ms | Body: ${text}`,
+                );
+            });
+        }
+
+        return response;
+    }
+
+    throw new Error(`Max retries exceeded for ${method} ${path}`);
+}
+
 export const api = {
     get: (path: string) => apiRequest("GET", path),
     post: (path: string, body?: unknown) => apiRequest("POST", path, body),
     put: (path: string, body: unknown) => apiRequest("PUT", path, body),
-    delete: (path: string) => apiRequest("DELETE", path),
+    delete: (path: string, body?: unknown) => apiRequest("DELETE", path, body),
+    upload: (path: string, formData: FormData) =>
+        apiUpload("POST", path, formData),
 };
 
 export function successResponse(text: string) {
