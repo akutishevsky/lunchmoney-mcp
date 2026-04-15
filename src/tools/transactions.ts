@@ -7,117 +7,211 @@ import {
     handleApiError,
     catchError,
 } from "../api.js";
-import { Transaction } from "../types.js";
+
+const dateString = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format");
+const dateOrDateTimeString = z
+    .string()
+    .describe(
+        "Date (YYYY-MM-DD) or ISO 8601 datetime (e.g. 2025-06-25T17:00:04Z).",
+    );
+const statusEnum = z.enum(["reviewed", "unreviewed", "delete_pending"]);
+const writeStatusEnum = z.enum(["reviewed", "unreviewed"]);
+
+const insertTransactionSchema = z.object({
+    date: dateString.describe("Date in YYYY-MM-DD format."),
+    amount: z.coerce
+        .number()
+        .describe(
+            "Numeric value (no currency symbol). Positive = debit, negative = credit. Up to 4 decimal places.",
+        ),
+    currency: z
+        .string()
+        .length(3)
+        .optional()
+        .describe(
+            "Three-letter lowercase currency code (defaults to primary currency).",
+        ),
+    payee: z.string().max(140).optional().describe("Payee name."),
+    original_name: z.string().max(140).nullable().optional(),
+    category_id: z.coerce.number().nullable().optional(),
+    notes: z.string().max(350).nullable().optional(),
+    manual_account_id: z.coerce
+        .number()
+        .nullable()
+        .optional()
+        .describe(
+            "Manual account ID. Mutually exclusive with plaid_account_id.",
+        ),
+    plaid_account_id: z.coerce
+        .number()
+        .nullable()
+        .optional()
+        .describe(
+            "Plaid account ID. Mutually exclusive with manual_account_id.",
+        ),
+    recurring_id: z.coerce.number().nullable().optional(),
+    status: writeStatusEnum.optional(),
+    tag_ids: z.array(z.coerce.number()).optional(),
+    external_id: z.string().max(75).nullable().optional(),
+    custom_metadata: z.record(z.unknown()).nullable().optional(),
+});
+
+const updateTransactionFieldsSchema = z.object({
+    date: dateString.optional(),
+    amount: z.coerce.number().optional(),
+    currency: z.string().length(3).optional(),
+    payee: z.string().max(140).optional(),
+    category_id: z.coerce.number().nullable().optional(),
+    notes: z.string().max(350).nullable().optional(),
+    manual_account_id: z.coerce.number().nullable().optional(),
+    plaid_account_id: z.coerce.number().nullable().optional(),
+    recurring_id: z.coerce.number().nullable().optional(),
+    status: writeStatusEnum.optional(),
+    tag_ids: z
+        .array(z.coerce.number())
+        .optional()
+        .describe(
+            "Replaces all existing tags on the transaction. Mutually exclusive with additional_tag_ids.",
+        ),
+    additional_tag_ids: z
+        .array(z.coerce.number())
+        .optional()
+        .describe(
+            "Adds these tags to the existing transaction tags. Mutually exclusive with tag_ids.",
+        ),
+    external_id: z.string().max(75).nullable().optional(),
+    custom_metadata: z.record(z.unknown()).nullable().optional(),
+});
 
 export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "get_transactions",
         {
             description:
-                "Retrieve transactions within a date range with optional filters",
+                "Retrieve transactions, optionally filtered by date range, account, category, tag, recurring item, status, and more. Returns at most `limit` transactions (default 1000, max 2000); `has_more` is set on the response when more match the filters. Pending and split-parent / group-child transactions are excluded by default.",
             inputSchema: {
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe("Start date in YYYY-MM-DD format"),
-                end_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe("End date in YYYY-MM-DD format"),
-                tag_id: z.coerce
-                    .number()
+                start_date: dateString
                     .optional()
-                    .describe("Filter by tag ID"),
-                recurring_id: z.coerce
-                    .number()
+                    .describe(
+                        "Beginning of the date range. Required if end_date is set.",
+                    ),
+                end_date: dateString
                     .optional()
-                    .describe("Filter by recurring expense ID"),
-                plaid_account_id: z.coerce
-                    .number()
+                    .describe(
+                        "End of the date range. Required if start_date is set.",
+                    ),
+                created_since: dateOrDateTimeString
                     .optional()
-                    .describe("Filter by Plaid account ID"),
-                category_id: z.coerce
-                    .number()
+                    .describe(
+                        "Only return transactions created after this timestamp.",
+                    ),
+                updated_since: dateOrDateTimeString
                     .optional()
-                    .describe("Filter by category ID"),
-                asset_id: z.coerce
-                    .number()
-                    .optional()
-                    .describe("Filter by asset ID"),
-                is_group: z
-                    .boolean()
-                    .optional()
-                    .describe("Filter by transaction groups"),
-                status: z
-                    .string()
-                    .optional()
-                    .describe("Filter by status: cleared, uncleared, pending"),
-                offset: z.coerce
-                    .number()
-                    .optional()
-                    .describe("Number of transactions to skip"),
-                limit: z.coerce
+                    .describe(
+                        "Only return transactions updated after this timestamp.",
+                    ),
+                manual_account_id: z.coerce
                     .number()
                     .optional()
                     .describe(
-                        "Maximum number of transactions to return (max 500)",
+                        "Filter by manual account ID, or 0 to omit all manual-account transactions.",
                     ),
-                debit_as_negative: z
+                plaid_account_id: z.coerce
+                    .number()
+                    .optional()
+                    .describe(
+                        "Filter by Plaid account ID, or 0 to omit all Plaid-account transactions.",
+                    ),
+                recurring_id: z.coerce.number().optional(),
+                category_id: z.coerce
+                    .number()
+                    .optional()
+                    .describe(
+                        "Filter by category ID. 0 returns only un-categorized transactions. Matches both leaf categories and category groups.",
+                    ),
+                tag_id: z.coerce.number().optional(),
+                is_group_parent: z
                     .boolean()
                     .optional()
-                    .describe("Pass true to return debit amounts as negative"),
+                    .describe(
+                        "If true, returns only transaction groups (group parents).",
+                    ),
+                status: statusEnum.optional(),
+                is_pending: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Filter by pending status. Takes precedence over include_pending when set.",
+                    ),
+                include_pending: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Include imported pending transactions in results.",
+                    ),
+                include_metadata: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Include plaid_metadata and custom_metadata fields on each transaction.",
+                    ),
+                include_split_parents: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Include the original parent transactions of split transactions.",
+                    ),
+                include_group_children: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Include the original transactions that were combined into transaction groups.",
+                    ),
+                include_children: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Populate the `children` array on group/split parent transactions.",
+                    ),
+                include_files: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "Include the `files` array (attachment metadata) on each transaction.",
+                    ),
+                limit: z.coerce
+                    .number()
+                    .min(1)
+                    .max(2000)
+                    .optional()
+                    .describe(
+                        "Max transactions to return (1-2000, default 1000).",
+                    ),
+                offset: z.coerce
+                    .number()
+                    .optional()
+                    .describe(
+                        "Offset for pagination. Use with `has_more` from a previous response.",
+                    ),
             },
             annotations: {
                 readOnlyHint: true,
             },
         },
-        async ({
-            start_date,
-            end_date,
-            tag_id,
-            recurring_id,
-            plaid_account_id,
-            category_id,
-            asset_id,
-            is_group,
-            status,
-            offset,
-            limit,
-            debit_as_negative,
-        }) => {
+        async (input) => {
             try {
-                const params = new URLSearchParams({
-                    start_date,
-                    end_date,
-                });
+                const params = new URLSearchParams();
+                for (const [key, value] of Object.entries(input)) {
+                    if (value === undefined || value === null) continue;
+                    params.append(key, String(value));
+                }
 
-                if (tag_id !== undefined)
-                    params.append("tag_id", tag_id.toString());
-                if (recurring_id !== undefined)
-                    params.append("recurring_id", recurring_id.toString());
-                if (plaid_account_id !== undefined)
-                    params.append(
-                        "plaid_account_id",
-                        plaid_account_id.toString(),
-                    );
-                if (category_id !== undefined)
-                    params.append("category_id", category_id.toString());
-                if (asset_id !== undefined)
-                    params.append("asset_id", asset_id.toString());
-                if (is_group !== undefined)
-                    params.append("is_group", is_group.toString());
-                if (status !== undefined) params.append("status", status);
-                if (offset !== undefined)
-                    params.append("offset", offset.toString());
-                if (limit !== undefined)
-                    params.append("limit", limit.toString());
-                if (debit_as_negative !== undefined)
-                    params.append(
-                        "debit_as_negative",
-                        debit_as_negative.toString(),
-                    );
-
-                const response = await api.get(`/transactions?${params}`);
+                const qs = params.toString();
+                const response = await api.get(
+                    `/transactions${qs ? `?${qs}` : ""}`,
+                );
 
                 if (!response.ok) {
                     return handleApiError(
@@ -126,13 +220,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const data = await response.json();
-                const transactions: Transaction[] = data.transactions;
-
-                return dataResponse({
-                    transactions,
-                    has_more: data.has_more,
-                });
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to get transactions");
             }
@@ -142,36 +230,22 @@ export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "get_single_transaction",
         {
-            description: "Get details of a specific transaction",
+            description:
+                "Get details of a specific transaction. The response always includes plaid_metadata, custom_metadata, files, and (for split or group parents) the children array — none of which are returned by default in get_transactions.",
             inputSchema: {
                 transaction_id: z.coerce
                     .number()
-                    .describe("ID of the transaction to retrieve"),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe("Pass true to return debit amounts as negative"),
+                    .describe("ID of the transaction to retrieve."),
             },
             annotations: {
                 readOnlyHint: true,
             },
         },
-        async ({ transaction_id, debit_as_negative }) => {
+        async ({ transaction_id }) => {
             try {
-                const params = new URLSearchParams();
-                if (debit_as_negative !== undefined) {
-                    params.append(
-                        "debit_as_negative",
-                        debit_as_negative.toString(),
-                    );
-                }
-
-                const query = params.toString();
-                const path = query
-                    ? `/transactions/${transaction_id}?${query}`
-                    : `/transactions/${transaction_id}`;
-
-                const response = await api.get(path);
+                const response = await api.get(
+                    `/transactions/${transaction_id}`,
+                );
 
                 if (!response.ok) {
                     return handleApiError(
@@ -180,9 +254,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const transaction: Transaction = await response.json();
-
-                return dataResponse(transaction);
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to get transaction");
             }
@@ -192,95 +264,32 @@ export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "create_transactions",
         {
-            description: "Insert one or more transactions",
+            description:
+                "Insert one or more transactions (1-500 per call). Returns inserted transactions plus any skipped duplicates.",
             inputSchema: {
                 transactions: z
-                    .array(
-                        z.object({
-                            date: z
-                                .string()
-                                .regex(
-                                    /^\d{4}-\d{2}-\d{2}$/,
-                                    "Must be YYYY-MM-DD format",
-                                )
-                                .describe("Date in YYYY-MM-DD format"),
-                            payee: z.string().describe("Payee name"),
-                            amount: z.coerce
-                                .string()
-                                .describe(
-                                    "Amount as string with up to 4 decimal places",
-                                ),
-                            currency: z
-                                .string()
-                                .length(3)
-                                .optional()
-                                .describe(
-                                    "Three-letter lowercase currency code",
-                                ),
-                            category_id: z.coerce
-                                .number()
-                                .optional()
-                                .describe("Category ID"),
-                            asset_id: z.coerce
-                                .number()
-                                .optional()
-                                .describe("Asset ID for manual accounts"),
-                            recurring_id: z.coerce
-                                .number()
-                                .optional()
-                                .describe("Recurring expense ID"),
-                            notes: z
-                                .string()
-                                .optional()
-                                .describe("Transaction notes"),
-                            status: z
-                                .enum(["cleared", "uncleared", "pending"])
-                                .optional()
-                                .describe("Transaction status"),
-                            external_id: z
-                                .string()
-                                .max(75)
-                                .optional()
-                                .describe("External ID (max 75 characters)"),
-                            tags: z
-                                .array(z.coerce.number())
-                                .optional()
-                                .describe("Array of tag IDs"),
-                            plaid_account_id: z.coerce
-                                .number()
-                                .optional()
-                                .describe(
-                                    "Plaid account ID to associate with this transaction",
-                                ),
-                        }),
-                    )
-                    .describe("Array of transactions to create"),
+                    .array(insertTransactionSchema)
+                    .min(1)
+                    .max(500)
+                    .describe("Array of transactions to insert (1-500)."),
                 apply_rules: z
                     .boolean()
                     .optional()
-                    .describe("Apply account's rules to transactions"),
+                    .describe(
+                        "Apply rules associated with the transaction's manual_account_id.",
+                    ),
                 skip_duplicates: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Skip transactions that are potential duplicates",
-                    ),
-                check_for_recurring: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Check if transactions are part of recurring expenses",
-                    ),
-                debit_as_negative: z
-                    .boolean()
-                    .optional()
-                    .describe(
-                        "Pass true if debits are provided as negative amounts",
+                        "Flag transactions that match an existing transaction's date+payee+amount+account as duplicates and skip them. Note: external_id deduplication always runs regardless of this flag.",
                     ),
                 skip_balance_update: z
                     .boolean()
                     .optional()
-                    .describe("Skip updating balance for assets/accounts"),
+                    .describe(
+                        "If true, do not update the manual account's balance when inserting these transactions.",
+                    ),
             },
             annotations: {
                 idempotentHint: false,
@@ -290,22 +299,13 @@ export function registerTransactionTools(server: McpServer) {
             transactions,
             apply_rules,
             skip_duplicates,
-            check_for_recurring,
-            debit_as_negative,
             skip_balance_update,
         }) => {
             try {
-                const body: Record<string, unknown> = {
-                    transactions,
-                };
-
+                const body: Record<string, unknown> = { transactions };
                 if (apply_rules !== undefined) body.apply_rules = apply_rules;
                 if (skip_duplicates !== undefined)
                     body.skip_duplicates = skip_duplicates;
-                if (check_for_recurring !== undefined)
-                    body.check_for_recurring = check_for_recurring;
-                if (debit_as_negative !== undefined)
-                    body.debit_as_negative = debit_as_negative;
                 if (skip_balance_update !== undefined)
                     body.skip_balance_update = skip_balance_update;
 
@@ -318,9 +318,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const result = await response.json();
-
-                return dataResponse(result);
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to create transactions");
             }
@@ -330,105 +328,33 @@ export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "update_transaction",
         {
-            description: "Update an existing transaction",
+            description:
+                "Update an existing transaction. Provide any subset of writable fields directly (the v2 API no longer wraps the body in a `transaction` envelope). Cannot modify split or grouped transactions; use the corresponding split/group tools instead.",
             inputSchema: {
                 transaction_id: z.coerce
                     .number()
-                    .describe("ID of the transaction to update"),
-                transaction: z
-                    .object({
-                        date: z
-                            .string()
-                            .regex(
-                                /^\d{4}-\d{2}-\d{2}$/,
-                                "Must be YYYY-MM-DD format",
-                            )
-                            .optional()
-                            .describe("Date in YYYY-MM-DD format"),
-                        payee: z.string().optional().describe("Payee name"),
-                        amount: z.coerce
-                            .string()
-                            .optional()
-                            .describe(
-                                "Amount as string with up to 4 decimal places",
-                            ),
-                        currency: z
-                            .string()
-                            .length(3)
-                            .optional()
-                            .describe("Three-letter lowercase currency code"),
-                        category_id: z.coerce
-                            .number()
-                            .optional()
-                            .describe("Category ID"),
-                        asset_id: z.coerce
-                            .number()
-                            .optional()
-                            .describe("Asset ID for manual accounts"),
-                        recurring_id: z.coerce
-                            .number()
-                            .optional()
-                            .describe("Recurring expense ID"),
-                        notes: z
-                            .string()
-                            .optional()
-                            .describe("Transaction notes"),
-                        status: z
-                            .enum(["cleared", "uncleared", "pending"])
-                            .optional()
-                            .describe("Transaction status"),
-                        external_id: z
-                            .string()
-                            .max(75)
-                            .optional()
-                            .describe("External ID (max 75 characters)"),
-                        tags: z
-                            .array(z.coerce.number())
-                            .optional()
-                            .describe("Array of tag IDs"),
-                        plaid_account_id: z.coerce
-                            .number()
-                            .optional()
-                            .describe(
-                                "Plaid account ID to associate with this transaction",
-                            ),
-                    })
-                    .describe("Transaction data to update"),
-                debit_as_negative: z
+                    .describe("ID of the transaction to update."),
+                update: updateTransactionFieldsSchema.describe(
+                    "Fields to update. Provide at least one writable field.",
+                ),
+                update_balance: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Pass true if debits are provided as negative amounts",
+                        "Defaults to true. Pass false to skip updating the associated manual account's balance.",
                     ),
-                skip_balance_update: z
-                    .boolean()
-                    .optional()
-                    .describe("Skip updating balance for assets/accounts"),
             },
             annotations: {
                 idempotentHint: true,
             },
         },
-        async ({
-            transaction_id,
-            transaction,
-            debit_as_negative,
-            skip_balance_update,
-        }) => {
+        async ({ transaction_id, update, update_balance }) => {
             try {
-                const body: Record<string, unknown> = {
-                    transaction,
-                };
-
-                if (debit_as_negative !== undefined)
-                    body.debit_as_negative = debit_as_negative;
-                if (skip_balance_update !== undefined)
-                    body.skip_balance_update = skip_balance_update;
-
-                const response = await api.put(
-                    `/transactions/${transaction_id}`,
-                    body,
-                );
+                const path =
+                    update_balance === undefined
+                        ? `/transactions/${transaction_id}`
+                        : `/transactions/${transaction_id}?update_balance=${update_balance}`;
+                const response = await api.put(path, update);
 
                 if (!response.ok) {
                     return handleApiError(
@@ -437,9 +363,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const result = await response.json();
-
-                return dataResponse(result);
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to update transaction");
             }
@@ -447,76 +371,125 @@ export function registerTransactionTools(server: McpServer) {
     );
 
     server.registerTool(
-        "unsplit_transactions",
+        "delete_transaction",
         {
-            description: "Remove one or more transactions from a split",
+            description:
+                "Delete a single transaction. Fails for split/group transactions and their parents — unsplit/ungroup first. Irreversible.",
             inputSchema: {
-                parent_ids: z
-                    .array(z.coerce.number())
-                    .describe("Array of parent transaction IDs to unsplit"),
-                remove_parents: z
-                    .boolean()
-                    .optional()
-                    .describe("If true, delete parent transactions"),
+                transaction_id: z.coerce
+                    .number()
+                    .describe("ID of the transaction to delete."),
             },
             annotations: {
                 destructiveHint: true,
             },
         },
-        async ({ parent_ids, remove_parents }) => {
+        async ({ transaction_id }) => {
             try {
-                const response = await api.post("/transactions/unsplit", {
-                    parent_ids,
-                    remove_parents,
-                });
+                const response = await api.delete(
+                    `/transactions/${transaction_id}`,
+                );
+
+                if (response.status === 204) {
+                    return successResponse("Transaction deleted.");
+                }
 
                 if (!response.ok) {
                     return handleApiError(
                         response,
-                        "Failed to unsplit transactions",
+                        "Failed to delete transaction",
                     );
                 }
 
-                const result = await response.json();
-
-                return dataResponse(result);
+                return dataResponse(await response.json());
             } catch (error) {
-                return catchError(error, "Failed to unsplit transactions");
+                return catchError(error, "Failed to delete transaction");
             }
         },
     );
 
     server.registerTool(
-        "get_transaction_group",
+        "update_transactions_bulk",
         {
-            description: "Get details of a transaction group",
+            description:
+                "Update multiple transactions in a single call (1-500). Each entry must include `id` plus at least one writable field. Cannot be used to modify split or grouped transactions.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction group"),
+                transactions: z
+                    .array(
+                        updateTransactionFieldsSchema.extend({
+                            id: z.coerce
+                                .number()
+                                .describe(
+                                    "ID of the transaction to update (required).",
+                                ),
+                        }),
+                    )
+                    .min(1)
+                    .max(500)
+                    .describe(
+                        "Array of partial transaction updates, each keyed by its `id`.",
+                    ),
             },
             annotations: {
-                readOnlyHint: true,
+                idempotentHint: true,
             },
         },
-        async ({ transaction_id }) => {
+        async ({ transactions }) => {
             try {
-                const response = await api.get(
-                    `/transactions/group/${transaction_id}`,
-                );
+                const response = await api.put("/transactions", {
+                    transactions,
+                });
 
                 if (!response.ok) {
                     return handleApiError(
                         response,
-                        "Failed to get transaction group",
+                        "Failed to bulk update transactions",
                     );
                 }
 
-                const result = await response.json();
-
-                return dataResponse(result);
+                return dataResponse(await response.json());
             } catch (error) {
-                return catchError(error, "Failed to get transaction group");
+                return catchError(error, "Failed to bulk update transactions");
+            }
+        },
+    );
+
+    server.registerTool(
+        "delete_transactions_bulk",
+        {
+            description:
+                "Bulk-delete transactions by ID (1-500). Fails if any ID is a split or group parent, or part of a split/group; unsplit or ungroup those first. Irreversible.",
+            inputSchema: {
+                ids: z
+                    .array(z.coerce.number())
+                    .min(1)
+                    .max(500)
+                    .describe("Array of transaction IDs to delete (1-500)."),
+            },
+            annotations: {
+                destructiveHint: true,
+            },
+        },
+        async ({ ids }) => {
+            try {
+                const response = await api.delete("/transactions", { ids });
+
+                if (response.status === 204) {
+                    return successResponse(
+                        `Deleted ${ids.length} transaction(s).`,
+                    );
+                }
+
+                if (!response.ok) {
+                    return handleApiError(
+                        response,
+                        "Failed to bulk delete transactions",
+                    );
+                }
+
+                return dataResponse(await response.json());
+            } catch (error) {
+                return catchError(error, "Failed to bulk delete transactions");
             }
         },
     );
@@ -524,40 +497,54 @@ export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "create_transaction_group",
         {
-            description: "Create a transaction group",
+            description:
+                "Create a transaction group from 2-500 existing transactions. Source transactions are hidden from get_transactions and accessible via the new group's `children` (set include_children=true on get_single_transaction). Cannot include split or recurring transactions.",
             inputSchema: {
-                date: z
+                ids: z
+                    .array(z.coerce.number())
+                    .min(2)
+                    .max(500)
+                    .describe(
+                        "IDs of existing transactions to group together.",
+                    ),
+                date: dateString.describe(
+                    "Date for the new grouped transaction (YYYY-MM-DD).",
+                ),
+                payee: z
                     .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe("Date in YYYY-MM-DD format"),
-                payee: z.string().describe("Payee name for the group"),
+                    .max(140)
+                    .describe("Payee for the new grouped transaction."),
                 category_id: z.coerce
                     .number()
+                    .nullable()
                     .optional()
-                    .describe("Category ID for the group"),
-                notes: z.string().optional().describe("Notes for the group"),
-                tags: z
+                    .describe(
+                        "Category for the group. If unset and all children share a category, the group inherits it.",
+                    ),
+                notes: z.string().max(350).nullable().optional(),
+                status: writeStatusEnum
+                    .optional()
+                    .describe(
+                        "Status for the new grouped transaction. Defaults to reviewed.",
+                    ),
+                tag_ids: z
                     .array(z.coerce.number())
                     .optional()
-                    .describe("Array of tag IDs for the group"),
-                transaction_ids: z
-                    .array(z.coerce.number())
-                    .describe("Array of transaction IDs to group"),
+                    .describe("Tag IDs to apply to the new group."),
             },
             annotations: {
                 idempotentHint: false,
             },
         },
-        async ({ date, payee, category_id, notes, tags, transaction_ids }) => {
+        async (input) => {
             try {
-                const response = await api.post("/transactions/group", {
-                    date,
-                    payee,
-                    category_id,
-                    notes,
-                    tags,
-                    transaction_ids,
-                });
+                const body: Record<string, unknown> = {};
+                for (const [key, value] of Object.entries(input)) {
+                    if (value === undefined) continue;
+                    body[key] = value;
+                }
+
+                const response = await api.post("/transactions/group", body);
 
                 if (!response.ok) {
                     return handleApiError(
@@ -566,9 +553,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                const result = await response.json();
-
-                return dataResponse(result);
+                return dataResponse(await response.json());
             } catch (error) {
                 return catchError(error, "Failed to create transaction group");
             }
@@ -578,11 +563,14 @@ export function registerTransactionTools(server: McpServer) {
     server.registerTool(
         "delete_transaction_group",
         {
-            description: "Delete a transaction group or a single transaction.",
+            description:
+                "Delete (ungroup) a transaction group. The original child transactions remain and revert to normal ungrouped transactions.",
             inputSchema: {
                 transaction_id: z.coerce
                     .number()
-                    .describe("ID of the transaction group to delete"),
+                    .describe(
+                        "ID of the transaction group (the group parent transaction) to delete.",
+                    ),
             },
             annotations: {
                 destructiveHint: true,
@@ -594,6 +582,10 @@ export function registerTransactionTools(server: McpServer) {
                     `/transactions/group/${transaction_id}`,
                 );
 
+                if (response.status === 204) {
+                    return successResponse("Transaction group ungrouped.");
+                }
+
                 if (!response.ok) {
                     return handleApiError(
                         response,
@@ -601,9 +593,7 @@ export function registerTransactionTools(server: McpServer) {
                     );
                 }
 
-                return successResponse(
-                    "Transaction group deleted successfully",
-                );
+                return successResponse("Transaction group ungrouped.");
             } catch (error) {
                 return catchError(error, "Failed to delete transaction group");
             }

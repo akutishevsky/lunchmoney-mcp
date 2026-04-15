@@ -89,7 +89,7 @@ export const api = {
     get: (path: string) => apiRequest("GET", path),
     post: (path: string, body?: unknown) => apiRequest("POST", path, body),
     put: (path: string, body: unknown) => apiRequest("PUT", path, body),
-    delete: (path: string) => apiRequest("DELETE", path),
+    delete: (path: string, body?: unknown) => apiRequest("DELETE", path, body),
 };
 
 export function successResponse(text: string) {
