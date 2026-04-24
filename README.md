@@ -21,7 +21,11 @@ A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lu
 - [Features](#features)
 - [Usage](#usage)
     - [Installation Options](#installation-options)
-    - [As a standalone MCP server](#as-a-standalone-mcp-server)
+        - [MCP Bundle](#mcp-bundle)
+        - [Claude Code CLI](#claude-code-cli)
+        - [Codex CLI](#codex-cli)
+        - [Manual MCP Configuration](#manual-mcp-configuration)
+    - [Standalone Server](#standalone-server)
 - [Example Prompts](#example-prompts)
 - [Available Tools](#available-tools)
 - [Development](#development)
@@ -59,7 +63,9 @@ This MCP server enables AI assistants and other MCP clients to interact with Lun
 
 ### Installation Options
 
-#### Option 1: MCP Bundle (.mcpb) - Recommended
+<a id="mcp-bundle"></a>
+
+#### MCP Bundle (.mcpb) - Recommended
 
 The easiest way to install this server is as an MCP Bundle in Claude Desktop:
 
@@ -69,11 +75,66 @@ The easiest way to install this server is as an MCP Bundle in Claude Desktop:
 4. Enter your LunchMoney API token when prompted (get it from [LunchMoney Developer Settings](https://my.lunchmoney.app/developers))
 5. The LunchMoney tools will be immediately available
 
-#### Option 2: Manual MCP Configuration
+<a id="claude-code-cli"></a>
+
+<details>
+<summary><strong>Claude Code CLI</strong></summary>
+
+Add the LunchMoney MCP server to Claude Code:
+
+```bash
+claude mcp add --transport stdio --env LUNCHMONEY_API_TOKEN=your-api-token-here lunchmoney -- npx -y @akutishevsky/lunchmoney-mcp
+```
+
+To enable debug logging:
+
+```bash
+claude mcp add --transport stdio --env LUNCHMONEY_API_TOKEN=your-api-token-here --env LUNCHMONEY_DEBUG=true lunchmoney -- npx -y @akutishevsky/lunchmoney-mcp
+```
+
+Verify the server was added:
+
+```bash
+claude mcp list
+claude mcp get lunchmoney
+```
+
+</details>
+
+<a id="codex-cli"></a>
+
+<details>
+<summary><strong>Codex CLI</strong></summary>
+
+Add the LunchMoney MCP server to Codex:
+
+```bash
+codex mcp add lunchmoney --env LUNCHMONEY_API_TOKEN=your-api-token-here -- npx -y @akutishevsky/lunchmoney-mcp
+```
+
+To enable debug logging:
+
+```bash
+codex mcp add lunchmoney --env LUNCHMONEY_API_TOKEN=your-api-token-here --env LUNCHMONEY_DEBUG=true -- npx -y @akutishevsky/lunchmoney-mcp
+```
+
+Verify the server was added:
+
+```bash
+codex mcp list
+codex mcp get lunchmoney
+```
+
+</details>
+
+<a id="manual-mcp-configuration"></a>
+
+<details>
+<summary><strong>Manual MCP Configuration</strong></summary>
 
 To use this MCP server with any MCP-compatible client (such as Claude Desktop), you need to add it to the client's configuration.
 
-#### Configuration
+##### Configuration
 
 The server can be configured in your MCP client's configuration file. The exact location and format may vary by client, but typically follows this pattern:
 
@@ -96,7 +157,7 @@ The server can be configured in your MCP client's configuration file. The exact 
 
 Replace `"your-api-token-here"` with your actual LunchMoney API token from [LunchMoney Developer Settings](https://my.lunchmoney.app/developers).
 
-#### Common MCP Client Configuration Locations
+##### Common MCP Client Configuration Locations
 
 Different MCP clients store their configuration in different locations:
 
@@ -107,20 +168,22 @@ Different MCP clients store their configuration in different locations:
 
 - **Other MCP Clients**: Check your client's documentation for the configuration file location.
 
-#### Setup Steps
+##### Setup Steps
 
 1. Locate your MCP client's configuration file (create it if it doesn't exist).
 2. Add the LunchMoney server configuration to the `mcpServers` section.
 3. Save the file and restart your MCP client.
 4. The LunchMoney tools should now be available in your client.
 
-#### Requirements
+##### Requirements
 
 - Node.js 16+ installed on your system
 - `npx` available in your system PATH
 - Valid LunchMoney API token with appropriate permissions
 
-### As a standalone MCP server
+</details>
+
+### Standalone Server
 
 ```bash
 # Run with npx
