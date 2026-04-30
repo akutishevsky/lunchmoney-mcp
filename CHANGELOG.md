@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-04-30
+
+### Fixed
+
+- `get_all_crypto` now calls LunchMoney's v1 `GET /crypto` endpoint so it returns synced and manually-managed crypto holdings.
+- `update_manual_crypto` now calls LunchMoney's v1 `PUT /crypto/manual/:id` endpoint for manually-managed crypto assets.
+
 ## [2.0.0] - 2026-04-15
 
 **Breaking change.** Migrates the entire MCP server from LunchMoney's v1 API (`https://dev.lunchmoney.app/v1`) to the v2 API (`https://api.lunchmoney.dev/v2`, currently in alpha). v2 is not backwards-compatible with v1, and this release is not backwards-compatible with v1.x of this server. Tool count grows from 29 to 41.

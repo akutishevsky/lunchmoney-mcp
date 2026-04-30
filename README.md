@@ -49,7 +49,7 @@ This MCP server enables AI assistants and other MCP clients to interact with Lun
 - **Budgets** - Per-period budget summary, account-wide budget settings, upsert, and delete
 - **Manual Accounts** - Full CRUD for manually-managed accounts (formerly known as "assets")
 - **Plaid Accounts** - List, retrieve, and trigger sync of connected bank accounts
-- **Cryptocurrency** - Track crypto holdings (a thin filter over manual accounts where `type=cryptocurrency`)
+- **Cryptocurrency** - Track synced and manual crypto holdings through LunchMoney's v1 crypto endpoints
 
 ### Key Capabilities
 
@@ -322,8 +322,8 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 
 ### Crypto Tools
 
-- `get_all_crypto` - List cryptocurrency holdings (filters `/manual_accounts` to type=cryptocurrency)
-- `update_manual_crypto` - Update the balance of a manually-managed cryptocurrency account
+- `get_all_crypto` - List synced and manual cryptocurrency holdings from `/v1/crypto`
+- `update_manual_crypto` - Update a manually-managed cryptocurrency asset via `/v1/crypto/manual/:id`
 
 ## Development
 

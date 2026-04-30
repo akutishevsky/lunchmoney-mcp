@@ -132,6 +132,21 @@ export interface PlaidAccount {
     plaid_last_successful_update: string | null;
 }
 
+export interface CryptoAsset {
+    id?: number | null;
+    zabo_account_id?: number | null;
+    source: "manual" | "synced";
+    name: string;
+    display_name: string | null;
+    balance: string;
+    balance_as_of?: string;
+    currency: string;
+    status: string;
+    institution_name: string | null;
+    created_at: string;
+    to_base?: number | null;
+}
+
 export interface TransactionAttachment {
     id: number;
     uploaded_by: number;

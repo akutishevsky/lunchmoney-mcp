@@ -1,21 +1,21 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { api, dataResponse, handleApiError, catchError } from "../api.js";
-import { ManualAccount } from "../types.js";
+import { apiV1, dataResponse, handleApiError, catchError } from "../api.js";
+import { CryptoAsset } from "../types.js";
 
 export function registerCryptoTools(server: McpServer) {
     server.registerTool(
         "get_all_crypto",
         {
             description:
-                "Get a list of cryptocurrency holdings. v2 has no dedicated /crypto endpoint; this tool queries /manual_accounts and filters to accounts with type=cryptocurrency. Use create_manual_account / update_manual_account / delete_manual_account for full management.",
+                "Get all cryptocurrency holdings from the v1 crypto endpoint. Returns both synced and manually managed crypto assets.",
             annotations: {
                 readOnlyHint: true,
             },
         },
         async () => {
             try {
-                const response = await api.get("/manual_accounts");
+                const response = await apiV1.get("/crypto");
 
                 if (!response.ok) {
                     return handleApiError(
@@ -24,13 +24,8 @@ export function registerCryptoTools(server: McpServer) {
                     );
                 }
 
-                const data: { manual_accounts: ManualAccount[] } =
-                    await response.json();
-                const crypto = data.manual_accounts.filter(
-                    (a) => a.type === "cryptocurrency",
-                );
-
-                return dataResponse({ crypto });
+                const data: { crypto: CryptoAsset[] } = await response.json();
+                return dataResponse(data);
             } catch (error) {
                 return catchError(error, "Failed to get crypto assets");
             }
@@ -41,28 +36,63 @@ export function registerCryptoTools(server: McpServer) {
         "update_manual_crypto",
         {
             description:
-                "Update a manually-managed cryptocurrency account's balance. v2 has no dedicated /crypto/manual endpoint; this tool calls PUT /manual_accounts/{id}. The id must reference an account with type=cryptocurrency.",
+                "Update a manually-managed crypto asset via the v1 crypto endpoint. The id must be from a get_all_crypto result with source=manual.",
             inputSchema: {
                 crypto_id: z.coerce
                     .number()
                     .describe(
-                        "ID of the manual account (with type=cryptocurrency) to update.",
+                        "ID of the manual crypto asset to update. Synced crypto assets cannot be updated.",
                     ),
                 balance: z.coerce
                     .number()
                     .describe("Updated balance of the crypto account."),
+                name: z
+                    .string()
+                    .max(45)
+                    .optional()
+                    .describe("Optional official or full name of the account."),
+                display_name: z
+                    .string()
+                    .max(25)
+                    .optional()
+                    .describe("Optional display name for the account."),
+                institution_name: z
+                    .string()
+                    .max(50)
+                    .optional()
+                    .describe("Optional provider that holds the asset."),
+                currency: z
+                    .string()
+                    .optional()
+                    .describe("Optional supported cryptocurrency code."),
             },
             annotations: {
                 idempotentHint: true,
             },
         },
-        async ({ crypto_id, balance }) => {
+        async ({
+            crypto_id,
+            balance,
+            name,
+            display_name,
+            institution_name,
+            currency,
+        }) => {
             try {
-                const response = await api.put(
-                    `/manual_accounts/${crypto_id}`,
-                    {
-                        balance: balance.toString(),
-                    },
+                const body: Record<string, unknown> = {
+                    balance: balance.toString(),
+                };
+
+                if (name !== undefined) body.name = name;
+                if (display_name !== undefined)
+                    body.display_name = display_name;
+                if (institution_name !== undefined)
+                    body.institution_name = institution_name;
+                if (currency !== undefined) body.currency = currency;
+
+                const response = await apiV1.put(
+                    `/crypto/manual/${crypto_id}`,
+                    body,
                 );
 
                 if (!response.ok) {

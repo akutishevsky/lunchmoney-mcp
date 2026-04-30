@@ -129,7 +129,7 @@ export function registerPrompts(server: McpServer) {
                                 "Steps:",
                                 "1. Call get_all_manual_accounts to fetch manually-managed accounts (formerly known as assets).",
                                 "2. Call get_all_plaid_accounts to fetch linked bank accounts.",
-                                "3. Call get_all_crypto to fetch cryptocurrency holdings (a thin filter over manual accounts where type=cryptocurrency).",
+                                "3. Call get_all_crypto to fetch cryptocurrency holdings from the v1 crypto endpoint.",
                                 "4. Group accounts by type (cash, investment, property, crypto, debt, etc.).",
                                 "5. Present a table with columns: Account Name, Type, Balance.",
                                 "6. Show subtotals for each type.",

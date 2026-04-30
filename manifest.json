@@ -2,7 +2,7 @@
     "manifest_version": "0.3",
     "name": "lunchmoney",
     "display_name": "Lunch Money",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "Manage your Lunch Money finances with AI assistance",
     "long_description": "Connect Claude to your Lunch Money account to analyze spending patterns, manage budgets, track transactions, and get insights about your finances. This extension provides full access to Lunch Money's v2 API, enabling you to manage categories, transactions, budgets, manual accounts, tags, recurring items, and more through natural language commands.",
     "author": {
@@ -182,11 +182,11 @@
         },
         {
             "name": "get_all_crypto",
-            "description": "Get cryptocurrency holdings (filters /manual_accounts to type=cryptocurrency)."
+            "description": "Get cryptocurrency holdings from the v1 crypto endpoint, including synced and manual crypto assets."
         },
         {
             "name": "update_manual_crypto",
-            "description": "Update the balance of a manually-managed cryptocurrency account."
+            "description": "Update a manually-managed crypto asset via the v1 crypto endpoint."
         }
     ],
     "prompts_generated": true,
