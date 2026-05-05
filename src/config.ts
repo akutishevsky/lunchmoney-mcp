@@ -5,15 +5,15 @@ interface Config {
 
 let config: Config | null = null;
 
-const initializeConfig = (): Config => {
-    if (!process.env.LUNCHMONEY_API_TOKEN) {
+const initializeConfig = (lunchmoneyApiToken: string): Config => {
+    if (!lunchmoneyApiToken) {
         throw new Error(
-            "Failed to get the LUNCHMONEY_API_TOKEN. Probably it wasn't added during the server configuration.",
+            "LunchMoney API token is required. Pass it to initializeConfig().",
         );
     }
 
     config = {
-        lunchmoneyApiToken: process.env.LUNCHMONEY_API_TOKEN,
+        lunchmoneyApiToken,
         baseUrl: "https://api.lunchmoney.dev/v2",
     };
 

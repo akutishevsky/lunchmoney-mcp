@@ -9,7 +9,13 @@ const { version } = require("../package.json");
 
 (async () => {
     try {
-        initializeConfig();
+        const token = process.env.LUNCHMONEY_API_TOKEN;
+        if (!token) {
+            throw new Error(
+                "Failed to get the LUNCHMONEY_API_TOKEN. Probably it wasn't added during the server configuration.",
+            );
+        }
+        initializeConfig(token);
 
         const server = createServer(version);
         const transport = new StdioServerTransport();
