@@ -7,6 +7,29 @@
     "bin": {
         "lunchmoney-mcp": "./build/index.js"
     },
+    "exports": {
+        ".": {
+            "types": "./build/index.d.ts",
+            "default": "./build/index.js"
+        },
+        "./server": {
+            "types": "./build/server.d.ts",
+            "import": "./build/server.js"
+        },
+        "./config": {
+            "types": "./build/config.d.ts",
+            "import": "./build/config.js"
+        },
+        "./prompts": {
+            "types": "./build/prompts.d.ts",
+            "import": "./build/prompts.js"
+        },
+        "./tools/*": {
+            "types": "./build/tools/*.d.ts",
+            "import": "./build/tools/*.js"
+        },
+        "./package.json": "./package.json"
+    },
     "scripts": {
         "build:mcpb": "npm run build && mkdir -p dist && npx @anthropic-ai/mcpb pack . dist/lunchmoney.mcpb",
         "build": "tsc && chmod 755 build/index.js",
