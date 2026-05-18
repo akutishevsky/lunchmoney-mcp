@@ -368,6 +368,23 @@ npm run build:mcpb
 3. Register tools in `src/index.ts`
 4. Add types to `src/types.ts` if needed
 
+### Embedding as a library
+
+The package exposes subpath entry points so it can be embedded in a custom transport (for example, a Cloudflare Worker that serves the MCP protocol over HTTP) rather than only the bundled stdio binary:
+
+```ts
+import { createServer } from "@akutishevsky/lunchmoney-mcp/server";
+import { initializeConfig } from "@akutishevsky/lunchmoney-mcp/config";
+
+initializeConfig(process.env.LUNCHMONEY_API_TOKEN!);
+const server = createServer("1.0.0");
+// connect `server` to whatever transport you need
+```
+
+`initializeConfig` must be called before any tool is invoked, or the first request throws `"Configuration not initialized."`.
+
+> **Single-tenant assumption.** The config is held in a module-level singleton. That is safe on per-isolate runtimes — each user gets their own isolate, so there is no shared mutable state to race on. It is **not** safe on shared-process multi-tenant Node hosts (e.g. one Express or Hono process serving multiple users): concurrent `initializeConfig` calls would race and leak tokens between requests. Those consumers need to fork per-user or refactor the singleton before exposing the package.
+
 ## API Reference
 
 The server implements the full LunchMoney API v2. For detailed API documentation, see:
