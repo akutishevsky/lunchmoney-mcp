@@ -10,7 +10,7 @@
     "exports": {
         ".": {
             "types": "./build/index.d.ts",
-            "default": "./build/index.js"
+            "import": "./build/index.js"
         },
         "./server": {
             "types": "./build/server.d.ts",
@@ -23,10 +23,6 @@
         "./prompts": {
             "types": "./build/prompts.d.ts",
             "import": "./build/prompts.js"
-        },
-        "./tools/*": {
-            "types": "./build/tools/*.d.ts",
-            "import": "./build/tools/*.js"
         },
         "./package.json": "./package.json"
     },
