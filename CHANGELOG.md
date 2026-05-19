@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2026-05-19
+
+### Added
+
+- **Library embedding support**: Package now exposes subpath exports (`./server`, `./config`, `./prompts`) to enable embedding in custom transports (HTTP, Cloudflare Workers, etc.) without forking.
+- **`createServer()` factory**: Extracted server construction into a reusable factory function in `src/server.ts`, enabling non-stdio runtimes to wire the MCP server into their own transports.
+- **TypeScript declarations**: Added `declaration: true` to tsconfig, emitting `.d.ts` files alongside `.js` in `build/`.
+- **JSDoc documentation**: Added comprehensive JSDoc on `createServer()` and `initializeConfig()` including single-tenant warning and deployment patterns.
+- **Documentation**: New "Embedding as a library" and "Remote Deployments" sections in README covering Cloudflare Workers and Express HTTP patterns.
+
+### Changed
+
+- **Config API**: `initializeConfig()` now takes `lunchmoneyApiToken` as an argument instead of reading from `process.env.LUNCHMONEY_API_TOKEN`. Env var read moved to stdio entry point. This allows non-Node runtimes to pass credentials from their own sources.
+- **Package exports**: Normalized root export from `"default"` to `"import"` in package.json for consistency with subpaths. Removed `./tools/*` subpath exports to avoid locking tool module layout as public API.
+
+### Fixed
+
+- Decoupled config singleton from process.env, enabling the package to be embedded in runtimes where `process.env` is unavailable (e.g., Cloudflare Workers post-esbuild).
+
 ## [2.0.1] - 2026-04-30
 
 ### Fixed

@@ -2,7 +2,7 @@
     "manifest_version": "0.3",
     "name": "lunchmoney",
     "display_name": "Lunch Money",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "description": "Manage your Lunch Money finances with AI assistance",
     "long_description": "Connect Claude to your Lunch Money account to analyze spending patterns, manage budgets, track transactions, and get insights about your finances. This extension provides full access to Lunch Money's v2 API, enabling you to manage categories, transactions, budgets, manual accounts, tags, recurring items, and more through natural language commands.",
     "author": {
