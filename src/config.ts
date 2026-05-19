@@ -5,15 +5,34 @@ interface Config {
 
 let config: Config | null = null;
 
-const initializeConfig = (): Config => {
-    if (!process.env.LUNCHMONEY_API_TOKEN) {
+/**
+ * Set the LunchMoney API token used by every tool in this package.
+ *
+ * Must be called before `createServer()` is connected to a transport, or
+ * before any individual tool is invoked.
+ *
+ * ⚠️ Single-tenant assumption: the config is stored in a module-level
+ * singleton, so two concurrent requests in the same process can race and
+ * read each other's tokens. This is safe on per-isolate runtimes
+ * (Cloudflare Workers + Durable Objects, AWS Lambda) and on single-user
+ * stdio deployments. It is NOT safe on shared-process multi-tenant hosts
+ * (e.g. a single Node process serving multiple users via Express or Hono);
+ * those consumers need to either fork per-user or refactor the singleton
+ * before exposing this package.
+ *
+ * @param lunchmoneyApiToken - Personal API token from
+ *   https://my.lunchmoney.app/developers.
+ * @throws If `lunchmoneyApiToken` is empty.
+ */
+const initializeConfig = (lunchmoneyApiToken: string): Config => {
+    if (!lunchmoneyApiToken) {
         throw new Error(
-            "Failed to get the LUNCHMONEY_API_TOKEN. Probably it wasn't added during the server configuration.",
+            "LunchMoney API token is required. Pass it to initializeConfig().",
         );
     }
 
     config = {
-        lunchmoneyApiToken: process.env.LUNCHMONEY_API_TOKEN,
+        lunchmoneyApiToken,
         baseUrl: "https://api.lunchmoney.dev/v2",
     };
 

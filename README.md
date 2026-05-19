@@ -26,6 +26,7 @@ A Model Context Protocol (MCP) server implementation for [LunchMoney](https://lu
         - [Codex CLI](#codex-cli)
         - [Manual MCP Configuration](#manual-mcp-configuration)
     - [Standalone Server](#standalone-server)
+- [Remote Deployments](#remote-deployments)
 - [Example Prompts](#example-prompts)
 - [Available Tools](#available-tools)
 - [Development](#development)
@@ -189,6 +190,42 @@ Different MCP clients store their configuration in different locations:
 # Run with npx
 LUNCHMONEY_API_TOKEN="your-api-token" npx @akutishevsky/lunchmoney-mcp
 ```
+
+## Remote Deployments
+
+The bundled stdio binary covers desktop MCP clients, but Claude on mobile and the [custom connectors](https://support.anthropic.com/en/articles/11503834-using-custom-connectors-with-claude) feature in [claude.ai](https://claude.ai) only speak HTTP. There are two ways to expose this server remotely.
+
+### Turnkey: Cloudflare Workers
+
+[lunchmoney-mcp-cloudflare](https://github.com/bm1549/lunchmoney-mcp-cloudflare) wraps this package as a Cloudflare Worker with Google sign-in and an email allowlist in front of the MCP endpoint. The whole stack fits inside Cloudflare's and Google Cloud's free tiers, and a `setup.sh` wizard handles KV creation, OAuth client setup, secrets, and deploy in one walkthrough. Each authenticated user runs in their own Durable Object, so the [config singleton](#embedding-as-a-library) stays per-user.
+
+### Self-hosted: HTTP transport on your own host
+
+For a single-user deployment, wire `createServer()` into [`StreamableHTTPServerTransport`](https://github.com/modelcontextprotocol/typescript-sdk#streamable-http-transport) and serve it from any Node HTTP framework. Example with Express:
+
+```ts
+import express from "express";
+import { createServer } from "@akutishevsky/lunchmoney-mcp/server";
+import { initializeConfig } from "@akutishevsky/lunchmoney-mcp/config";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+initializeConfig(process.env.LUNCHMONEY_API_TOKEN!);
+const server = createServer("1.0.0");
+
+const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => crypto.randomUUID(),
+});
+await server.connect(transport);
+
+const app = express();
+app.use(express.json());
+app.all("/mcp", (req, res) => transport.handleRequest(req, res, req.body));
+app.listen(3000);
+```
+
+Swap Express for Hono (via `@hono/node-server`) or Fastify if you prefer — the transport only needs Node's `IncomingMessage` and `ServerResponse`. Add your own auth in front of `/mcp` — the package ships no transport-level auth.
+
+> **Multi-tenant warning.** This pattern serves one user from one process with one shared API token. To serve multiple users from a single Node process you'd hit the [single-tenant config singleton](#embedding-as-a-library); fork the process per user or use the Cloudflare option above (each user gets their own isolate).
 
 ## Example Prompts
 
@@ -367,6 +404,23 @@ npm run build:mcpb
 2. Implement tool handlers using the MCP SDK
 3. Register tools in `src/index.ts`
 4. Add types to `src/types.ts` if needed
+
+### Embedding as a library
+
+The package exposes subpath entry points so it can be embedded in a custom transport (for example, a Cloudflare Worker that serves the MCP protocol over HTTP) rather than only the bundled stdio binary:
+
+```ts
+import { createServer } from "@akutishevsky/lunchmoney-mcp/server";
+import { initializeConfig } from "@akutishevsky/lunchmoney-mcp/config";
+
+initializeConfig(process.env.LUNCHMONEY_API_TOKEN!);
+const server = createServer("1.0.0");
+// connect `server` to whatever transport you need
+```
+
+`initializeConfig` must be called before any tool is invoked, or the first request throws `"Configuration not initialized."`.
+
+> **Single-tenant assumption.** The config is held in a module-level singleton. That is safe on per-isolate runtimes — each user gets their own isolate, so there is no shared mutable state to race on. It is **not** safe on shared-process multi-tenant Node hosts (e.g. one Express or Hono process serving multiple users): concurrent `initializeConfig` calls would race and leak tokens between requests. Those consumers need to fork per-user or refactor the singleton before exposing the package.
 
 ## API Reference
 
