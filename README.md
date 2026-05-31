@@ -84,13 +84,13 @@ The easiest way to install this server is as an MCP Bundle in Claude Desktop:
 Add the LunchMoney MCP server to Claude Code:
 
 ```bash
-claude mcp add --transport stdio --env LUNCHMONEY_API_TOKEN=your-api-token-here lunchmoney -- npx -y @akutishevsky/lunchmoney-mcp
+claude mcp add lunchmoney --transport stdio -e LUNCHMONEY_API_TOKEN=your-api-token-here -- npx -y @akutishevsky/lunchmoney-mcp
 ```
 
 To enable debug logging:
 
 ```bash
-claude mcp add --transport stdio --env LUNCHMONEY_API_TOKEN=your-api-token-here --env LUNCHMONEY_DEBUG=true lunchmoney -- npx -y @akutishevsky/lunchmoney-mcp
+claude mcp add lunchmoney --transport stdio -e LUNCHMONEY_API_TOKEN=your-api-token-here -e LUNCHMONEY_DEBUG=true -- npx -y @akutishevsky/lunchmoney-mcp
 ```
 
 Verify the server was added:
