@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2026-05-31
+
+### Fixed
+
+- TOON formatting now properly compacts arrays of objects by dropping keys that are blank in every row while preserving partially-present keys as explicit nulls, ensuring uniform structure for optimal token compression.
+- Primitive arrays (e.g., `tag_ids`) are now joined to a single pipe-delimited scalar, further reducing TOON output size.
+
 ## [2.1.0] - 2026-05-19
 
 ### Added
