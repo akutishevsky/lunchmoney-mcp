@@ -1,4 +1,4 @@
-import { encode } from "@toon-format/toon";
+import { encodeGeneric } from "@blackwell-systems/gcf";
 
 function isBlank(value: unknown): boolean {
     if (value === null || value === undefined) return true;
@@ -11,7 +11,7 @@ function isPrimitiveArray(arr: unknown[]): boolean {
 
 // For an array of objects, drop a key only when it is blank in EVERY row, and
 // keep partially-present keys as explicit nulls. Uniform keys across rows let
-// TOON emit its compact tabular form (header once, rows as CSV) instead of a
+// GCF emit its compact tabular form (header once, rows as values) instead of a
 // verbose repeated-key list. Primitive-array values are joined to a single
 // scalar by compact() so they don't disqualify a row from the tabular form.
 function compactArray(arr: unknown[]): unknown[] {
@@ -50,5 +50,5 @@ function compact(value: unknown): unknown {
 }
 
 export function formatData(data: unknown): string {
-    return encode(compact(data));
+    return encodeGeneric(compact(data));
 }

@@ -1,0 +1,33 @@
+GCF vs TOON vs JSON Benchmark: LunchMoney MCP Data Shapes
+============================================================
+
+Date: 2026-06-17
+Token estimation: Math.max(1, Math.floor(text.length / 4))
+Data: realistic LunchMoney financial records with compaction applied
+
+| Data Type    | Rows | JSON Tokens | TOON Tokens | GCF Tokens | GCF vs JSON | GCF vs TOON |
+| ------------ | ---- | ----------- | ----------- | ---------- | ----------- | ----------- |
+| Transactions | 10   | 494         | 233         | 223        | 54.9%       | 4.3%        |
+| Transactions | 50   | 2532        | 1123        | 1072       | 57.7%       | 4.5%        |
+| Transactions | 100  | 5011        | 2166        | 2063       | 58.8%       | 4.8%        |
+| Transactions | 200  | 10090       | 4387        | 4165       | 58.7%       | 5.1%        |
+| Budgets      | 10   | 384         | 158         | 158        | 58.9%       | 0.0%        |
+| Budgets      | 50   | 1926        | 710         | 690        | 64.2%       | 2.8%        |
+| Budgets      | 100  | 3853        | 1399        | 1355       | 64.8%       | 3.1%        |
+| Budgets      | 200  | 7740        | 2811        | 2717       | 64.9%       | 3.3%        |
+| Categories   | 10   | 529         | 275         | 262        | 50.5%       | 4.7%        |
+| Categories   | 50   | 2664        | 1300        | 1212       | 54.5%       | 6.8%        |
+| Categories   | 100  | 5337        | 2586        | 2403       | 55.0%       | 7.1%        |
+| Categories   | 200  | 10725       | 5198        | 4827       | 55.0%       | 7.1%        |
+| Accounts     | 10   | 442         | 242         | 238        | 46.2%       | 1.7%        |
+| Accounts     | 50   | 2186        | 1116        | 1072       | 51.0%       | 3.9%        |
+| Accounts     | 100  | 4373        | 2215        | 2121       | 51.5%       | 4.2%        |
+| Accounts     | 200  | 8757        | 4424        | 4230       | 51.7%       | 4.4%        |
+
+Summary
+----------------------------------------
+Total JSON tokens:  67,043
+Total TOON tokens:  30,343
+Total GCF tokens:   28,808
+GCF vs JSON saving: 57.0%
+GCF vs TOON saving: 5.1%

@@ -29,7 +29,7 @@ A husky pre-commit hook runs `npm run format` automatically before every commit.
 
 **Tools:** `src/tools/` — one file per domain. Each exports a `register[Domain]Tools(server: McpServer)` function called from `index.ts`.
 
-**Response format:** `src/format.ts` — uses [TOON](https://github.com/nicfontaine/toon) encoding instead of JSON for tool responses. TOON is a compact text format that reduces token count by stripping quotes and braces. Before encoding, `compact()` drops object keys that are blank (null/undefined/empty array) in every element of an array, while keeping keys that are partially present as explicit nulls. This preserves key uniformity across rows so TOON emits its compact tabular form (header once, rows as CSV) instead of a verbose repeated-key list. Primitive arrays (e.g. `tag_ids`) are joined into a single `|`-delimited scalar so they don't disqualify a row from the tabular form; arrays of objects (e.g. `children`, `files`) are left intact and compacted recursively.
+**Response format:** `src/format.ts` — uses [GCF](https://github.com/daynajblackwell/gcf) (Graph Compact Format) encoding instead of JSON for tool responses. GCF is an AI-native wire format that reduces token count through columnar encoding optimized for LLM comprehension. Before encoding, `compact()` drops object keys that are blank (null/undefined/empty array) in every element of an array, while keeping keys that are partially present as explicit nulls. This preserves key uniformity across rows so GCF emits its compact tabular form (header once, rows as values) instead of a verbose repeated-key list. Primitive arrays (e.g. `tag_ids`) are joined into a single `|`-delimited scalar so they don't disqualify a row from the tabular form; arrays of objects (e.g. `children`, `files`) are left intact and compacted recursively.
 
 ## Tool Implementation Pattern
 
@@ -68,7 +68,7 @@ logging, and auth), plus `dataResponse`, `successResponse`,
 Key conventions:
 
 - Tool names are `snake_case`; Zod `.describe()` is required on all parameters for AI discoverability
-- All responses use `formatData()` (TOON encoding) — never raw JSON or markdown
+- All responses use `formatData()` (GCF encoding) — never raw JSON or markdown
 - Error responses use `errorResponse()` and `getErrorMessage()` from `src/errors.ts`
 - GET requests with optional filters use `URLSearchParams`, only appending defined values
 - Tools with no parameters omit `inputSchema`
