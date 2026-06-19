@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/akutishevsky-lunchmoney-mcp-badge.png)](https://mseep.ai/app/akutishevsky-lunchmoney-mcp)
+
 # LunchMoney MCP Server
 
 [![npm version](https://img.shields.io/npm/v/@akutishevsky/lunchmoney-mcp)](https://www.npmjs.com/package/@akutishevsky/lunchmoney-mcp)
