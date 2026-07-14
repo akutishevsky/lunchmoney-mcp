@@ -156,6 +156,8 @@ The server can be configured in your MCP client's configuration file. The exact 
 
 > **Note:** `LUNCHMONEY_DEBUG` is optional. Set it to `"true"` to enable debug logging of API requests and responses to stderr. Useful for troubleshooting.
 
+> **Note:** `LUNCHMONEY_OUTPUT_FORMAT` is optional. Tool responses are encoded as [TOON](https://github.com/toon-format/toon) by default; set it to `"gcf"` to encode them as [GCF](https://gcformat.com) (Graph Compact Format) instead — a lossless, zero-dependency alternative that is read by models at least as accurately as JSON. Both round-trip losslessly.
+
 Replace `"your-api-token-here"` with your actual LunchMoney API token from [LunchMoney Developer Settings](https://my.lunchmoney.app/developers).
 
 ##### Common MCP Client Configuration Locations
