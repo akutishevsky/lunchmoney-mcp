@@ -57,6 +57,7 @@
     "homepage": "https://github.com/akutishevsky/lunchmoney-mcp#readme",
     "type": "module",
     "dependencies": {
+        "@blackwell-systems/gcf": "2.4.0",
         "@modelcontextprotocol/sdk": "^1.17.0",
         "@toon-format/toon": "^2.1.0",
         "zod": "^3.25.76"

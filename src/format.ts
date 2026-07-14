@@ -1,3 +1,4 @@
+import { encodeGeneric } from "@blackwell-systems/gcf";
 import { encode } from "@toon-format/toon";
 
 function isBlank(value: unknown): boolean {
@@ -49,6 +50,17 @@ function compact(value: unknown): unknown {
     return out;
 }
 
+// Output format for tool responses. Defaults to TOON; set LUNCHMONEY_OUTPUT_FORMAT=gcf
+// to emit Graph Compact Format instead. Both run on the same compact() shape and
+// round-trip losslessly.
+function getOutputFormat(): "toon" | "gcf" {
+    return process.env.LUNCHMONEY_OUTPUT_FORMAT?.toLowerCase() === "gcf"
+        ? "gcf"
+        : "toon";
+}
+
 export function formatData(data: unknown): string {
-    return encode(compact(data));
+    const compacted = compact(data);
+    if (getOutputFormat() === "gcf") return encodeGeneric(compacted);
+    return encode(compacted);
 }
