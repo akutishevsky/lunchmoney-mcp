@@ -18,7 +18,7 @@ Inputs that previously reached the API and failed (or were silently coerced) are
 - **Shape-level changes:**
     - `get_transactions`, `get_recurring_items` and `get_single_recurring_item` date params, and the `trigger_plaid_fetch` date params, accept only `YYYY-MM-DD`.
     - `closed_on` accepts only `YYYY-MM-DD`, not the spec's date-time alternative.
-    - IDs must be positive integers within int32 (transaction and group IDs within int64). Zero, negative and fractional IDs are rejected.
+    - IDs must be integers within int32. Transaction, group and attachment IDs must be positive integers. Fractional and out-of-range IDs are rejected.
     - `split_transaction` `category_id: null` now sends an uncategorized child. Previously `null` was coerced to `0`.
     - `create_category` and `update_category` `children` no longer treat numeric-looking strings such as `"315174"` as IDs. Pass IDs as JSON numbers.
 - **`delete_category` and `delete_tag` return `isError: true` on a 422.** The dependents payload is still included, with a hint to set `force=true`. Previously this was a success-shaped result.
@@ -30,8 +30,8 @@ Inputs that previously reached the API and failed (or were silently coerced) are
     - `get_account_settings` and `update_account_settings`: account-wide currencies, locale, display name and rule automation.
     - `get_user_settings` and `update_user_settings`: user-wide date and time display preferences.
     - `get_user_account_settings` and `update_user_account_settings`: transaction review behaviour and the default manual account.
-- **`search` on `get_supported_cryptocurrencies`.** The endpoint returns well over a thousand coins and takes no filters, so the tool now filters by symbol, name or CoinGecko id when `search` is given, with exact symbol matches first.
     - The update tools need at least one field. Note that the spec marks all three PUT request schemas and the format enums as `x-internal`, so public support for the writes is uncertain.
+- **`search` on `get_supported_cryptocurrencies`.** The endpoint returns well over a thousand coins and takes no filters, so the tool now filters by symbol, name or CoinGecko id when `search` is given, with exact symbol matches first.
 - **Shared validators** in `src/schemas.ts`: `currency`, `locale`, `amount`, `cryptoBalance`, `id`, `isoDate`, and the user-settings format enums.
 - **Missing request fields** from the spec:
     - `create_manual_account` and `update_manual_account`: `status`, `external_id`, `custom_metadata`.
