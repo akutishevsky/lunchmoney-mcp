@@ -150,4 +150,23 @@ describe("spec constraints — rejected before any request", () => {
         });
         assert.equal(result.isError, true);
     });
+
+    // The spec sets no maxLength on transaction notes, but the live API
+    // rejects notes of 350+ characters (verified against a demo account).
+    it("create_transactions rejects notes over 350 characters", async () => {
+        const result = await call("create_transactions", {
+            transactions: [
+                { date: "2026-01-01", amount: 1, notes: "a".repeat(351) },
+            ],
+        });
+        assertRejected(result, /notes/);
+    });
+
+    it("rejects an unknown currency without listing every code", async () => {
+        const result = await call("create_transactions", {
+            transactions: [{ date: "2026-01-01", amount: 1, currency: "xyz" }],
+        });
+        assertRejected(result, /Invalid currency/);
+        assert.doesNotMatch(result.content[0].text, /"zwl"/);
+    });
 });

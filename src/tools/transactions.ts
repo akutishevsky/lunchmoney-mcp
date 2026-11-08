@@ -107,10 +107,11 @@ const splitChildSchema = z.object({
         ),
     notes: z
         .string()
+        .max(350)
         .nullable()
         .optional()
         .describe(
-            "Defaults to the parent's notes. null or an empty string leaves the child with no notes.",
+            "Defaults to the parent's notes. null or an empty string leaves the child with no notes. Max 350 characters.",
         ),
 });
 
@@ -137,7 +138,12 @@ const insertTransactionSchema = z
             .describe(
                 "Category ID. Cannot be a category group. null or omitted means no category.",
             ),
-        notes: z.string().nullable().optional().describe("Transaction notes."),
+        notes: z
+            .string()
+            .max(350)
+            .nullable()
+            .optional()
+            .describe("Transaction notes. Max 350 characters."),
         manual_account_id: id
             .nullable()
             .optional()
@@ -204,9 +210,12 @@ const updateTransactionBase = z.object({
         .describe("Category ID. null clears the category."),
     notes: z
         .string()
+        .max(350)
         .nullable()
         .optional()
-        .describe("New notes. An empty string clears the existing notes."),
+        .describe(
+            "New notes, max 350 characters. An empty string clears the existing notes.",
+        ),
     manual_account_id: id
         .nullable()
         .optional()
@@ -700,9 +709,12 @@ export function registerTransactionTools(server: McpServer) {
                     ),
                 notes: z
                     .string()
+                    .max(350)
                     .nullable()
                     .optional()
-                    .describe("Notes for the new grouped transaction."),
+                    .describe(
+                        "Notes for the new grouped transaction. Max 350 characters.",
+                    ),
                 status: writeStatusEnum
                     .optional()
                     .describe(

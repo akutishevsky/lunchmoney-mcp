@@ -201,7 +201,7 @@ export function registerTagTools(server: McpServer) {
                     .nullable()
                     .optional()
                     .describe(
-                        "Archived timestamp for the tag, as an ISO 8601 extended datetime (e.g. 2026-01-15T10:00:00Z). Pass null to clear it.",
+                        "Archived timestamp for the tag, as an ISO 8601 extended datetime (e.g. 2026-01-15T10:00:00Z). Pass null to clear it. On a tag that is not archived yet, archived must also be set to true.",
                     ),
             },
             annotations: {

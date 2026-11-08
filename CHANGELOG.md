@@ -22,7 +22,7 @@ Inputs that previously reached the API and failed (or were silently coerced) are
     - `split_transaction` `category_id: null` now sends an uncategorized child. Previously `null` was coerced to `0`.
     - `create_category` and `update_category` `children` no longer treat numeric-looking strings such as `"315174"` as IDs. Pass IDs as JSON numbers.
 - **`delete_category` and `delete_tag` return `isError: true` on a 422.** The dependents payload is still included, with a hint to set `force=true`. Previously this was a success-shaped result.
-- **Length caps the spec does not define were removed.** Payee and notes limits on transaction writes are gone, because the spec does not define them. The live API's real limit is unverified, so long values now reach the API.
+- **The 140-character payee cap on transaction writes was removed.** The spec defines no limit, and the live API accepts longer payees. The 350-character notes cap stays: the spec is silent on it, but the live API rejects notes of 350+ characters.
 
 ### Added
 

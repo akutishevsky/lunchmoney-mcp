@@ -50,5 +50,7 @@ function compact(value: unknown): unknown {
 }
 
 export function formatData(data: unknown): string {
-    return encode(compact(data));
+    // compact() drops empty arrays, so a response like { recurring_items: [] }
+    // encodes to "". Say so explicitly rather than returning nothing.
+    return encode(compact(data)) || "No results.";
 }

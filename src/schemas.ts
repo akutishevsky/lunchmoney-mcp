@@ -177,7 +177,10 @@ export const CURRENCIES = [
 // Lowercased before validation so "USD" is accepted and sent as "usd".
 export const currency = z.preprocess(
     (v) => (typeof v === "string" ? v.toLowerCase() : v),
-    z.enum(CURRENCIES),
+    // Without a custom message zod lists all 167 codes in the error.
+    z.enum(CURRENCIES, {
+        error: "Invalid currency: expected a supported three-letter code such as usd or eur.",
+    }),
 );
 
 // components.schemas.localeEnum
