@@ -27,7 +27,7 @@ const manualAccountStatusEnum = z.enum(["active", "closed"]);
 
 // The spec caps custom_metadata at 4096 characters once stringified.
 const customMetadata = z
-    .record(z.unknown())
+    .record(z.string(), z.unknown())
     .refine(
         (value) => JSON.stringify(value).length <= 4096,
         "custom_metadata must not exceed 4096 characters when stringified.",

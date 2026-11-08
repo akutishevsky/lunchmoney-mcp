@@ -170,7 +170,7 @@ const insertTransactionSchema = z
                 "User-defined external ID. With manual_account_id set, duplicate external IDs for that account are rejected.",
             ),
         custom_metadata: z
-            .record(z.unknown())
+            .record(z.string(), z.unknown())
             .refine(
                 fitsCustomMetadata,
                 "custom_metadata must not exceed 4096 characters when stringified.",
@@ -241,7 +241,7 @@ const updateTransactionBase = z.object({
             "User-defined external ID. The update fails if the transaction has no manual_account_id or another transaction already uses this external ID for that account.",
         ),
     custom_metadata: z
-        .record(z.unknown())
+        .record(z.string(), z.unknown())
         .nullable()
         .optional()
         .describe("Arbitrary JSON object stored with the transaction."),
