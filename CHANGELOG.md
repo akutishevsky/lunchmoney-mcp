@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.0.0] - 2026-11-08
+## [4.0.1] - 2026-11-08
+
+Same changes as the withdrawn 4.0.0, which was published to npm and unpublished the same day; npm does not allow a version number to be reused. The release workflow now publishes to npm with trusted publishing (OIDC) instead of a stored token.
 
 **Breaking change.** Spec parity pass against the LunchMoney v2 OpenAPI spec (2.11.1). Every tool now exposes the request fields the spec defines, accepts `null` where the spec marks a field nullable and `null` has meaning, enforces the spec's pairing, exclusivity and min-one-field rules before any request is sent, and validates currencies, amounts, IDs and dates with shared validators (`src/schemas.ts`). Tool count grows from 59 to 65.
 
