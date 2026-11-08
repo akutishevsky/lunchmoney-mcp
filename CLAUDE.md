@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCP (Model Context Protocol) server for the LunchMoney personal finance API (v2). Provides 59 tools across 10 domains (transactions, categories, budgets, manual accounts, tags, recurring items, user, Plaid accounts, crypto, balance history). Uses stdio transport and is published to npm as `@akutishevsky/lunchmoney-mcp`.
+MCP (Model Context Protocol) server for the LunchMoney personal finance API (v2). Provides 65 tools across 10 domains (transactions, categories, budgets, manual accounts, tags, recurring items, user, Plaid accounts, crypto, balance history). Uses stdio transport and is published to npm as `@akutishevsky/lunchmoney-mcp`.
 
 ## Commands
 

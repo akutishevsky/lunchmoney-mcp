@@ -1,5 +1,4 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 import {
     api,
     dataResponse,
@@ -7,6 +6,8 @@ import {
     handleApiError,
     catchError,
 } from "../api.js";
+import { errorResponse } from "../errors.js";
+import { id, isoDate } from "../schemas.js";
 
 export function registerPlaidAccountTools(server: McpServer) {
     server.registerTool(
@@ -42,11 +43,9 @@ export function registerPlaidAccountTools(server: McpServer) {
             description:
                 "Get details of a single Plaid (synced) account by ID.",
             inputSchema: {
-                accountId: z.coerce
-                    .number()
-                    .describe(
-                        "Id of the Plaid account to query. Call get_all_plaid_accounts first to discover ids.",
-                    ),
+                accountId: id.describe(
+                    "Id of the Plaid account to query. Call get_all_plaid_accounts first to discover ids.",
+                ),
             },
             annotations: {
                 readOnlyHint: true,
@@ -74,22 +73,19 @@ export function registerPlaidAccountTools(server: McpServer) {
         "trigger_plaid_fetch",
         {
             description:
-                "Trigger a fetch of latest data from Plaid. Optionally scope the fetch to a date range and/or a specific Plaid account ID. Note: Plaid enforces a minimum 60-second delay between fetch requests; fetching may take up to 5 minutes.",
+                "Trigger a fetch of latest data from Plaid. An account is eligible only if its last_fetch is over 1 minute ago; calling again sooner returns 425 Too Early, so use this sparingly. Optionally scope the fetch to a date range (start_date and end_date must be provided together) and/or a specific Plaid account ID. The fetch runs as a background job, so the results are not immediate.",
             inputSchema: {
-                start_date: z
-                    .string()
+                start_date: isoDate
                     .optional()
                     .describe(
-                        "Beginning of the date range to fetch transactions for (YYYY-MM-DD). Required if end_date is set.",
+                        "Beginning of the date range to fetch transactions for (YYYY-MM-DD). If omitted, the most recent transactions are fetched. Required if end_date is set.",
                     ),
-                end_date: z
-                    .string()
+                end_date: isoDate
                     .optional()
                     .describe(
                         "End of the date range to fetch transactions for (YYYY-MM-DD). Required if start_date is set.",
                     ),
-                id: z.coerce
-                    .number()
+                id: id
                     .optional()
                     .describe(
                         "If set, only fetch the specified Plaid account; otherwise all eligible accounts are fetched.",
@@ -99,17 +95,31 @@ export function registerPlaidAccountTools(server: McpServer) {
                 openWorldHint: true,
             },
         },
-        async ({ start_date, end_date, id }) => {
+        async ({ start_date, end_date, id: accountId }) => {
             try {
+                if ((start_date === undefined) !== (end_date === undefined)) {
+                    return errorResponse(
+                        "Failed to trigger Plaid fetch: start_date and end_date must be provided together.",
+                    );
+                }
+
                 const params = new URLSearchParams();
                 if (start_date) params.append("start_date", start_date);
                 if (end_date) params.append("end_date", end_date);
-                if (id !== undefined) params.append("id", String(id));
+                if (accountId !== undefined)
+                    params.append("id", String(accountId));
 
                 const qs = params.toString();
                 const response = await api.post(
                     `/plaid_accounts/fetch${qs ? `?${qs}` : ""}`,
                 );
+
+                // 425 means LunchMoney has not yet made the account eligible again.
+                if (response.status === 425) {
+                    return errorResponse(
+                        "Plaid fetch not started: LunchMoney accepts a fetch only for accounts whose last_fetch is over 1 minute ago (425 Too Early). Wait at least 60 seconds before triggering another fetch.",
+                    );
+                }
 
                 if (!response.ok) {
                     return handleApiError(
@@ -119,7 +129,7 @@ export function registerPlaidAccountTools(server: McpServer) {
                 }
 
                 return successResponse(
-                    "Plaid fetch accepted. Fetching may take up to 5 minutes; query get_all_plaid_accounts to check plaid_last_successful_update / last_import.",
+                    "Plaid fetch accepted (202) and queued as a background job. To verify, query get_all_plaid_accounts and check whether plaid_last_successful_update or last_import is more recent than the current last_fetch: a more recent plaid_last_successful_update means the institution was contacted, and a more recent last_import means new transactions were imported.",
                 );
             } catch (error) {
                 return catchError(error, "Failed to trigger Plaid fetch");

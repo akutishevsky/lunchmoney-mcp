@@ -30,6 +30,30 @@
             "description": "Get details on the current user."
         },
         {
+            "name": "get_account_settings",
+            "description": "Get account-wide settings for the current budget account (currencies, locale, display name, rule automation)."
+        },
+        {
+            "name": "update_account_settings",
+            "description": "Update account-wide settings. At least one field required; display_name nullable."
+        },
+        {
+            "name": "get_user_settings",
+            "description": "Get user-wide display and formatting preferences (date formats, AM/PM, week start, debits as negative)."
+        },
+        {
+            "name": "update_user_settings",
+            "description": "Update user-wide display and formatting preferences. At least one field required."
+        },
+        {
+            "name": "get_user_account_settings",
+            "description": "Get user-specific settings within the current budget account (transaction review, default manual account)."
+        },
+        {
+            "name": "update_user_account_settings",
+            "description": "Update user-specific settings within the budget account. At least one field required; default_manual_account_id nullable."
+        },
+        {
             "name": "get_all_categories",
             "description": "Get a list of all categories. Supports format (flattened/nested) and is_group filter."
         },

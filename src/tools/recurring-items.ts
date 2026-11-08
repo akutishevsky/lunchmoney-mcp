@@ -1,33 +1,36 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { api, dataResponse, handleApiError, catchError } from "../api.js";
+import {
+    api,
+    dataResponse,
+    handleApiError,
+    catchError,
+    errorResponse,
+} from "../api.js";
+import { id, isoDate } from "../schemas.js";
 
 export function registerRecurringItemsTools(server: McpServer) {
     server.registerTool(
         "get_recurring_items",
         {
             description:
-                "Retrieve a list of recurring items expected for a specified date range. The `matches` object on each item is populated based on the requested range.",
+                "Retrieve a list of recurring items expected for a specified date range. The `matches` object on each item is populated based on the requested range and is null for suggested items.",
             inputSchema: {
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                start_date: isoDate
                     .optional()
                     .describe(
-                        "Start of the range used to populate `matches` (YYYY-MM-DD). Defaults to the current month. Required if end_date is set.",
+                        "Start of the range used to populate `matches` (YYYY-MM-DD). Defaults to the current month. Must be provided together with end_date.",
                     ),
-                end_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                end_date: isoDate
                     .optional()
                     .describe(
-                        "End of the range used to populate `matches` (YYYY-MM-DD). Required if start_date is set.",
+                        "End of the range used to populate `matches` (YYYY-MM-DD). Must be provided together with start_date.",
                     ),
                 include_suggested: z
                     .boolean()
                     .optional()
                     .describe(
-                        "If true, also returns recurring items suggested by the system that have not yet been reviewed.",
+                        "If true, also returns recurring items suggested by the system that have not yet been reviewed. Suggested items do not update matching transactions until reviewed.",
                     ),
             },
             annotations: {
@@ -36,6 +39,12 @@ export function registerRecurringItemsTools(server: McpServer) {
         },
         async ({ start_date, end_date, include_suggested }) => {
             try {
+                if ((start_date === undefined) !== (end_date === undefined)) {
+                    return errorResponse(
+                        "Failed to get recurring items: start_date and end_date must be provided together.",
+                    );
+                }
+
                 const params = new URLSearchParams();
                 if (start_date) params.append("start_date", start_date);
                 if (end_date) params.append("end_date", end_date);
@@ -70,24 +79,18 @@ export function registerRecurringItemsTools(server: McpServer) {
             description:
                 "Retrieve a single recurring item by ID. Optional date range populates the `matches` object.",
             inputSchema: {
-                recurringId: z.coerce
-                    .number()
-                    .describe(
-                        "Id of the recurring item to query. Call get_recurring_items first to discover ids.",
-                    ),
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                recurringId: id.describe(
+                    "Id of the recurring item to query. Call get_recurring_items first to discover ids.",
+                ),
+                start_date: isoDate
                     .optional()
                     .describe(
-                        "Start of the range used to populate `matches` (YYYY-MM-DD). Defaults to the current month. Required if end_date is set.",
+                        "Start of the range used to populate `matches` (YYYY-MM-DD). Defaults to the current month. Must be provided together with end_date.",
                     ),
-                end_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
+                end_date: isoDate
                     .optional()
                     .describe(
-                        "End of the range used to populate `matches` (YYYY-MM-DD). Required if start_date is set.",
+                        "End of the range used to populate `matches` (YYYY-MM-DD). Must be provided together with start_date.",
                     ),
             },
             annotations: {
@@ -96,6 +99,12 @@ export function registerRecurringItemsTools(server: McpServer) {
         },
         async ({ recurringId, start_date, end_date }) => {
             try {
+                if ((start_date === undefined) !== (end_date === undefined)) {
+                    return errorResponse(
+                        "Failed to get recurring item: start_date and end_date must be provided together.",
+                    );
+                }
+
                 const params = new URLSearchParams();
                 if (start_date) params.append("start_date", start_date);
                 if (end_date) params.append("end_date", end_date);

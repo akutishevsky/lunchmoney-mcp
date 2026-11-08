@@ -5,7 +5,6 @@ import {
     dataResponse,
     handleApiError,
     catchError,
-    errorResponse,
     successResponse,
 } from "../api.js";
 import {
@@ -14,21 +13,7 @@ import {
     SyncedCryptoAccount,
     SyncedCryptoBalance,
 } from "../types.js";
-
-// v2 accepts a balance as either a number or a string of up to 18 decimal
-// places. A string holds more precision than a JS double, so it is the
-// preferred form and is forwarded untouched. Numbers are forwarded untouched
-// too rather than being stringified: String(1e-8) is "1e-8", which would fail
-// the decimal pattern even though one satoshi is a perfectly ordinary balance.
-const cryptoBalance = z.union([
-    z
-        .string()
-        .regex(
-            /^-?\d+(\.\d{1,18})?$/,
-            "Balance must be numeric with at most 18 decimal places.",
-        ),
-    z.number(),
-]);
+import { cryptoBalance, id } from "../schemas.js";
 
 export function registerCryptoTools(server: McpServer) {
     server.registerTool(
@@ -143,10 +128,9 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Get a single manually-managed crypto balance by ID. Call get_all_manual_crypto first to discover ids.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe("Id of the manual crypto balance to retrieve."),
+                crypto_id: id.describe(
+                    "Id of the manual crypto balance to retrieve.",
+                ),
             },
             annotations: {
                 readOnlyHint: true,
@@ -198,17 +182,19 @@ export function registerCryptoTools(server: McpServer) {
                     .string()
                     .min(1)
                     .max(45)
+                    .nullable()
                     .optional()
                     .describe(
-                        "Optional display name. If omitted, clients may derive one from institution_name and name.",
+                        "Optional display name. If omitted or null, clients may derive one from institution_name and name.",
                     ),
                 institution_name: z
                     .string()
                     .min(1)
                     .max(50)
+                    .nullable()
                     .optional()
                     .describe(
-                        "Optional institution or wallet provider display name, e.g. 'Ledger'.",
+                        "Optional institution or wallet provider display name, e.g. 'Ledger'. If omitted or null, no institution name is set.",
                     ),
             },
             annotations: {
@@ -252,14 +238,11 @@ export function registerCryptoTools(server: McpServer) {
         "update_manual_crypto",
         {
             description:
-                "Update a manually-managed crypto balance. At least one of name, display_name, institution_name, or balance must be supplied. The symbol of an existing balance cannot be changed.",
+                "Update a manually-managed crypto balance. Only the supplied fields change. The symbol of an existing balance cannot be changed.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe(
-                        "Id of the manual crypto balance to update. Synced crypto balances cannot be updated.",
-                    ),
+                crypto_id: id.describe(
+                    "Id of the manual crypto balance to update. Synced crypto balances cannot be updated.",
+                ),
                 balance: cryptoBalance
                     .optional()
                     .describe(
@@ -311,12 +294,6 @@ export function registerCryptoTools(server: McpServer) {
                 if (institution_name !== undefined)
                     body.institution_name = institution_name;
 
-                if (Object.keys(body).length === 0) {
-                    return errorResponse(
-                        "Failed to update manual crypto balance: at least one property must be provided: name, display_name, institution_name, or balance.",
-                    );
-                }
-
                 const response = await api.put(
                     `/crypto/manual/${crypto_id}`,
                     body,
@@ -346,10 +323,9 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Delete a manually-managed crypto asset. If the asset has balance history, keep_history must be set explicitly or the API rejects the request. Irreversible.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe("Id of the manual crypto balance to delete."),
+                crypto_id: id.describe(
+                    "Id of the manual crypto balance to delete.",
+                ),
                 keep_history: z
                     .boolean()
                     .optional()
@@ -431,10 +407,9 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Get a single synced crypto account and all its nested balances by ID.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe("Id of the synced crypto account to retrieve."),
+                crypto_id: id.describe(
+                    "Id of the synced crypto account to retrieve.",
+                ),
             },
             annotations: {
                 readOnlyHint: true,
@@ -465,10 +440,7 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Get a single balance held inside a synced crypto account, looked up by its cryptocurrency symbol.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe("Id of the synced crypto account."),
+                crypto_id: id.describe("Id of the synced crypto account."),
                 symbol: z
                     .string()
                     .min(1)
@@ -508,10 +480,9 @@ export function registerCryptoTools(server: McpServer) {
             description:
                 "Trigger a balance refresh for a synced crypto account and return the refreshed account. Reaches out to the external crypto provider.",
             inputSchema: {
-                crypto_id: z.coerce
-                    .number()
-                    .int()
-                    .describe("Id of the synced crypto account to refresh."),
+                crypto_id: id.describe(
+                    "Id of the synced crypto account to refresh.",
+                ),
             },
             annotations: {
                 openWorldHint: true,

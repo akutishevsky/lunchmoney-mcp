@@ -314,6 +314,12 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 ### User Tools
 
 - `get_user` - Retrieve current user details
+- `get_account_settings` - Get account-wide settings (currencies, locale, display name, rule automation)
+- `update_account_settings` - Update account-wide settings (at least one field required)
+- `get_user_settings` - Get user-wide display and formatting preferences
+- `update_user_settings` - Update user-wide display and formatting preferences (at least one field required)
+- `get_user_account_settings` - Get user-specific settings within the budget account
+- `update_user_account_settings` - Update user-specific account settings, such as the default manual account (at least one field required)
 
 ### Category Tools
 

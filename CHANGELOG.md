@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+Spec parity pass against the LunchMoney v2 OpenAPI spec (2.11.1). Every tool now exposes the request fields the spec defines, accepts `null` where the spec marks a field nullable and `null` has meaning, enforces the spec's pairing, exclusivity and min-one-field rules before any request is sent, and validates currencies, amounts, IDs and dates with shared validators (`src/schemas.ts`). Tool count grows from 59 to 65.
+
+### Breaking
+
+Inputs that previously reached the API and failed (or were silently coerced) are now rejected by the tool with a clear message. Valid calls are unchanged unless listed below.
+
+- **Amounts are no longer coerced.** `null`, `""` and non-numeric strings are rejected for transaction, budget, balance and manual-account amounts. Strings may have at most 4 decimal places. Numbers and strings are forwarded as supplied.
+- **Currencies are validated against the spec's 167-code enum.** Input is lowercased first, so `USD` is accepted and sent as `usd`. Unknown codes are rejected. Previously any three-character string passed through.
+- **Date ranges must be paired.** `get_transactions`, `get_recurring_items`, `get_single_recurring_item` and `trigger_plaid_fetch` reject `start_date` without `end_date` (or the reverse). `get_balance_history`, `get_account_balance_history` and `get_crypto_synced_balance_history` reject a lone `start_month` or `end_month`, and reject `end_month` earlier than `start_month`.
+- **Min-one-field PUT bodies return an error instead of an empty request.** `update_tag`, `update_category`, `update_transaction`, `update_transactions_bulk` and `update_manual_account` now refuse calls with no writable field. `update_manual_crypto` no longer refuses an empty body. The spec allows `{}` there, so the API decides.
+- **Mutually exclusive fields are rejected.** `create_transactions` rejects `manual_account_id` and `plaid_account_id` together. Transaction updates reject `tag_ids` together with `additional_tag_ids`. `create_manual_account` and `update_manual_account` reject `closed_on` unless the status is `closed`.
+- **Shape-level changes:**
+    - `get_transactions`, `get_recurring_items` and `get_single_recurring_item` date params, and the `trigger_plaid_fetch` date params, accept only `YYYY-MM-DD`.
+    - `closed_on` accepts only `YYYY-MM-DD`, not the spec's date-time alternative.
+    - IDs must be positive integers within int32 (transaction and group IDs within int64). Zero, negative and fractional IDs are rejected.
+    - `split_transaction` `category_id: null` now sends an uncategorized child. Previously `null` was coerced to `0`.
+    - `create_category` and `update_category` `children` no longer treat numeric-looking strings such as `"315174"` as IDs. Pass IDs as JSON numbers.
+- **`delete_category` and `delete_tag` return `isError: true` on a 422.** The dependents payload is still included, with a hint to set `force=true`. Previously this was a success-shaped result.
+- **Length caps the spec does not define were removed.** Payee and notes limits on transaction writes are gone, because the spec does not define them. The live API's real limit is unverified, so long values now reach the API.
+
+### Added
+
+- **Six settings tools** for the spec's `/me/*` settings endpoints:
+    - `get_account_settings` and `update_account_settings`: account-wide currencies, locale, display name and rule automation.
+    - `get_user_settings` and `update_user_settings`: user-wide date and time display preferences.
+    - `get_user_account_settings` and `update_user_account_settings`: transaction review behaviour and the default manual account.
+    - The update tools need at least one field. Note that the spec marks all three PUT request schemas and the format enums as `x-internal`, so public support for the writes is uncertain.
+- **Shared validators** in `src/schemas.ts`: `currency`, `locale`, `amount`, `cryptoBalance`, `id`, `isoDate`, and the user-settings format enums.
+- **Missing request fields** from the spec:
+    - `create_manual_account` and `update_manual_account`: `status`, `external_id`, `custom_metadata`.
+    - `create_category`: `order`, `collapsed`. `update_category`: `archived_at`, `collapsed`.
+    - `update_tag`: `archived_at`.
+    - `upsert_account_balance_history` and `upsert_crypto_synced_balance_history` balances: optional `id` and `to_base`, which the server ignores.
+    - `create_transactions`: `custom_metadata` gained a 4096-character limit, enforced on the stringified value.
+- **Nullable fields** where the spec allows `null`: `display_name` and `institution_name` on manual accounts, `subtype` on manual account updates, `closed_on` on create and update, `description` on categories, `notes` on budgets (sending `null` clears it), `display_name` and `institution_name` on create-manual-crypto, `symbol` on balance-history entries, `category_id` and `notes` on split children, and `default_manual_account_id`.
+- **Budget summary and settings descriptions** now state the spec's rules: occurrences are returned only for aligned responses, `aligned=false` ranges may have `null` budgeted and available values, and currency and locale come from the account settings endpoint.
+- **Plaid fetch 425 handling.** `trigger_plaid_fetch` returns a clear error for `425 Too Early`, saying the account's `last_fetch` must be over a minute old. Its 202 message tells the model to verify the fetch against `last_fetch` and the other timestamps.
+- **Test suite coverage** for the shared validators (`test/schemas.test.mjs`) and for the pre-request constraint rejections (`test/constraints.tool.test.mjs`).
+
+### Fixed
+
+- Budget `upsert_budget` and `remove_budget` `category_id` and dates are validated against the spec's int32 and `YYYY-MM-DD` rules. Previously fractional IDs and unpadded dates were forwarded.
+- The flat `budgetInvalidPeriodErrorObject` 400 response from the budgets API is now formatted with its `requested_start_date`, `previous_valid_start_date` and `next_valid_start_date` values, instead of falling through to a generic message.
+- Balance-history `balance` values are forwarded as the caller supplied them. Numbers are no longer stringified, and string forms are validated instead of coerced.
+- `get_single_manual_crypto`, `update_manual_crypto` and the other crypto ID params now use the shared int32 ID validator.
+- Response types in `src/types.ts` now match the spec: `Category.collapsed` is a required boolean, child categories are always `collapsed: false`, and the per-category `rollover_pool` was removed because the spec defines it only at the top level of the summary response. Added `AccountSettings`, `UserSettings` and `UserAccountSettings`.
+
 ## [3.0.0] - 2026-08-03
 
 **Breaking change**, scoped to the crypto tools. Crypto was the last domain still calling LunchMoney's v1 API; this release moves it to v2, so the server no longer talks to `dev.lunchmoney.app/v1` at all. `get_all_crypto` — present in every release since 1.0.0 — is removed, because v2 has no combined crypto endpoint to back it. Every other domain is untouched. Tool count grows from 50 to 59.
