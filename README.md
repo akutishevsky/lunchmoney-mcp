@@ -314,6 +314,12 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 ### User Tools
 
 - `get_user` - Retrieve current user details
+- `get_account_settings` - Get account-wide settings (currencies, locale, display name, rule automation)
+- `update_account_settings` - Update account-wide settings (at least one field required)
+- `get_user_settings` - Get user-wide display and formatting preferences
+- `update_user_settings` - Update user-wide display and formatting preferences (at least one field required)
+- `get_user_account_settings` - Get user-specific settings within the budget account
+- `update_user_account_settings` - Update user-specific account settings, such as the default manual account (at least one field required)
 
 ### Category Tools
 
@@ -376,7 +382,7 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 
 ### Crypto Tools
 
-- `get_supported_cryptocurrencies` - List the cryptocurrencies supported for manual tracking
+- `get_supported_cryptocurrencies` - List the cryptocurrencies supported for manual tracking (optional `search` filter)
 - `add_supported_cryptocurrency` - Add a cryptocurrency to the supported list from its CoinGecko coin-page URL
 - `get_all_manual_crypto` - List all manually-managed crypto balances
 - `get_single_manual_crypto` - Get a single manually-managed crypto balance by ID

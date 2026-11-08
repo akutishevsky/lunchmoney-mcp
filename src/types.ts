@@ -8,6 +8,34 @@ export interface User {
     api_key_label: string | null;
 }
 
+export interface AccountSettings {
+    primary_currency: string;
+    supported_currencies: string[];
+    display_name: string | null;
+    locale: string;
+    auto_create_category_rules: boolean;
+    auto_create_suggested_transaction_rules: boolean;
+    include_pending_in_totals: boolean;
+}
+
+export interface UserSettings {
+    show_debits_as_negative: boolean;
+    auto_suggest_payee: boolean;
+    month_year_format: string;
+    month_day_year_format: string;
+    month_day_format: string;
+    show_am_pm: boolean;
+    week_starts_on: "sunday" | "monday";
+    always_display_year: boolean;
+    always_display_weekday: boolean;
+}
+
+export interface UserAccountSettings {
+    auto_review_transaction_on_update: boolean;
+    auto_review_transaction_on_creation: boolean;
+    default_manual_account_id: number | null;
+}
+
 export interface CategoryChild {
     id: number;
     name: string;
@@ -22,7 +50,7 @@ export interface CategoryChild {
     archived: boolean;
     archived_at: string | null;
     order: number | null;
-    collapsed?: boolean;
+    collapsed: false;
 }
 
 export interface Category {
@@ -39,7 +67,7 @@ export interface Category {
     archived: boolean;
     archived_at: string | null;
     order: number | null;
-    collapsed?: boolean;
+    collapsed: boolean;
     children?: CategoryChild[];
 }
 
@@ -402,7 +430,6 @@ export interface SummaryCategory {
     category_id: number;
     totals: SummaryCategoryTotals;
     occurrences?: SummaryCategoryOccurrence[];
-    rollover_pool?: SummaryRolloverPool;
 }
 
 export interface SummaryRolloverPoolAdjustment {

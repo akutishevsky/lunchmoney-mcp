@@ -67,10 +67,20 @@ describe("custom_metadata — record schema", () => {
         for (const name of ["create_transactions", "update_transaction"]) {
             const tool = tools.find((t) => t.name === name);
             assert.ok(tool, `${name} should be registered`);
-            const schema = JSON.stringify(tool.inputSchema);
-            assert.match(
-                schema,
-                /"custom_metadata":\{"anyOf":\[\{"type":"object"/,
+            // create_transactions nests it under transactions[]; update_transaction
+            // nests it under update. Find it wherever it sits.
+            const find = (node) => {
+                if (!node || typeof node !== "object") return undefined;
+                if (node.properties?.custom_metadata)
+                    return node.properties.custom_metadata;
+                for (const child of Object.values(node)) {
+                    const hit = find(child);
+                    if (hit) return hit;
+                }
+            };
+            const field = find(tool.inputSchema);
+            assert.ok(
+                field?.anyOf?.some((s) => s.type === "object"),
                 `${name} should advertise custom_metadata as an object`,
             );
         }

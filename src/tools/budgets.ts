@@ -7,26 +7,25 @@ import {
     handleApiError,
     catchError,
 } from "../api.js";
+import { amount, currency, isoDate } from "../schemas.js";
+
+// The spec types category_id as integer/int32 with no minimum, so negative
+// IDs inside the int32 range are passed through rather than rejected here.
+const categoryId = z.coerce.number().int().min(-2147483648).max(2147483647);
 
 export function registerBudgetTools(server: McpServer) {
     server.registerTool(
         "get_budget_summary",
         {
             description:
-                "Get a summary of the user's budget for a specified date range. Returns per-category totals (other_activity, recurring_activity, budgeted, available, recurring_remaining, recurring_expected). Set include_occurrences=true for a per-period breakdown matching the account's budget periodicity. (Backed by the v2 GET /summary endpoint.)",
+                "Get a summary of the user's budget for a specified date range. Returns per-category totals (other_activity, recurring_activity, budgeted, available, recurring_remaining, recurring_expected). Set include_occurrences=true for a per-period breakdown matching the account's budget periodicity. Ranges that do not align with budget periods return aligned=false, and categories omit the budgeted and available values. (Backed by the v2 GET /summary endpoint.)",
             inputSchema: {
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe(
-                        "Start date in YYYY-MM-DD format. For aligned results use a valid budget period start (e.g. first day of month).",
-                    ),
-                end_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe(
-                        "End date in YYYY-MM-DD format. For aligned results use a valid budget period end (e.g. last day of month).",
-                    ),
+                start_date: isoDate.describe(
+                    "Start date in YYYY-MM-DD format. For aligned results use a valid budget period start (e.g. first day of month).",
+                ),
+                end_date: isoDate.describe(
+                    "End date in YYYY-MM-DD format. For aligned results use a valid budget period end (e.g. last day of month).",
+                ),
                 include_exclude_from_budgets: z
                     .boolean()
                     .optional()
@@ -37,7 +36,7 @@ export function registerBudgetTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "Include an `occurrences` array on each category, with one entry per budget period in the range.",
+                        "Include an `occurrences` array on each category, with one entry per budget period in the range. Only returned for aligned responses.",
                     ),
                 include_past_budget_dates: z
                     .boolean()
@@ -119,7 +118,7 @@ export function registerBudgetTools(server: McpServer) {
         "get_budget_settings",
         {
             description:
-                "Get budget period and display settings for the account (granularity, period length, anchor date, hide-no-activity preference, income option, rollover-left-to-budget setting).",
+                "Get budget period and display settings for the account (granularity, period quantity, anchor date, hide-no-activity preference, last-day-of-month preference, income option, rollover-left-to-budget setting). General preferences such as currency and locale are not included; they live on the account settings endpoint.",
             annotations: {
                 readOnlyHint: true,
             },
@@ -148,28 +147,26 @@ export function registerBudgetTools(server: McpServer) {
             description:
                 "Create or update a budget for a category and budget period. The start_date must be a valid budget period start for the account (see get_budget_settings).",
             inputSchema: {
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe(
-                        "Budget period start date in YYYY-MM-DD format. Must be a valid budget period start; if not, the API returns the previous and next valid start dates.",
-                    ),
-                category_id: z.coerce
-                    .number()
-                    .describe("Category ID for the budget."),
-                amount: z.coerce.number().describe("Budget amount."),
-                currency: z
-                    .string()
-                    .length(3)
+                start_date: isoDate.describe(
+                    "Budget period start date in YYYY-MM-DD format. Must be a valid budget period start; if not, the API returns the previous and next valid start dates.",
+                ),
+                category_id: categoryId.describe("Category ID for the budget."),
+                amount: amount.describe(
+                    'Budget amount. A number, or a string with at most 4 decimal places (e.g. "125.5000").',
+                ),
+                currency: currency
                     .optional()
                     .describe(
-                        "Three-letter lowercase currency code (defaults to primary currency).",
+                        'Three-letter currency code, e.g. "usd", "eur", "btc". Case-insensitive. Defaults to the account\'s primary currency.',
                     ),
                 notes: z
                     .string()
                     .max(350)
+                    .nullable()
                     .optional()
-                    .describe("Optional notes for the budget period."),
+                    .describe(
+                        "Optional notes for the budget period (max 350 characters). Accepts null.",
+                    ),
             },
             annotations: {
                 idempotentHint: true,
@@ -183,7 +180,7 @@ export function registerBudgetTools(server: McpServer) {
                     amount,
                 };
 
-                if (currency) body.currency = currency;
+                if (currency !== undefined) body.currency = currency;
                 if (notes !== undefined) body.notes = notes;
 
                 const response = await api.put("/budgets", body);
@@ -205,15 +202,12 @@ export function registerBudgetTools(server: McpServer) {
             description:
                 "Remove the budget for a specific category and period. The request is idempotent — succeeds even if no budget exists for the period.",
             inputSchema: {
-                start_date: z
-                    .string()
-                    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-                    .describe(
-                        "Budget period start date in YYYY-MM-DD format. Must be a valid budget period start.",
-                    ),
-                category_id: z.coerce
-                    .number()
-                    .describe("Category ID for the budget to remove."),
+                start_date: isoDate.describe(
+                    "Budget period start date in YYYY-MM-DD format. Must be a valid budget period start.",
+                ),
+                category_id: categoryId.describe(
+                    "Category ID for the budget to remove.",
+                ),
             },
             annotations: {
                 destructiveHint: true,

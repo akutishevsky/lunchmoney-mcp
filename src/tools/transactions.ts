@@ -14,113 +14,258 @@ import {
     contentTypeMatches,
     readAttachment,
 } from "../attachments.js";
+import { amount, currency, id, isoDate } from "../schemas.js";
 
-const splitChildSchema = z.object({
-    amount: z.coerce
-        .number()
-        .describe(
-            "Amount of this split. Sum of all children must equal the parent's amount.",
-        ),
-    payee: z
-        .string()
-        .max(140)
-        .optional()
-        .describe("Defaults to the parent's payee."),
-    date: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format")
-        .optional()
-        .describe("Defaults to the parent's date."),
-    category_id: z.coerce
-        .number()
-        .optional()
-        .describe(
-            "Category ID. Defaults to parent's category. Cannot be a category group.",
-        ),
-    tag_ids: z.array(z.coerce.number()).optional(),
-    notes: z
-        .string()
-        .max(350)
-        .optional()
-        .describe("Defaults to the parent's notes."),
-});
+// Transaction IDs are int64 in the spec, so they are not capped at int32 the
+// way the shared `id` validator is.
+const transactionId = z.coerce.number().int().positive();
 
-const dateString = z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Must be YYYY-MM-DD format");
-const dateOrDateTimeString = z
-    .string()
-    .describe(
-        "Date (YYYY-MM-DD) or ISO 8601 datetime (e.g. 2025-06-25T17:00:04Z).",
-    );
+// Filter IDs where 0 is a meaningful value (no account, or uncategorized).
+const filterId = z.coerce.number().int().min(0).max(2147483647);
+
+const dateOrDateTime = z.union([
+    isoDate,
+    z.string().datetime({ offset: true }),
+]);
 const statusEnum = z.enum(["reviewed", "unreviewed", "delete_pending"]);
 const writeStatusEnum = z.enum(["reviewed", "unreviewed"]);
 
-const insertTransactionSchema = z.object({
-    date: dateString.describe("Date in YYYY-MM-DD format."),
-    amount: z.coerce
-        .number()
-        .describe(
-            "Numeric value (no currency symbol). Positive = debit, negative = credit. Up to 4 decimal places.",
-        ),
-    currency: z
-        .string()
-        .length(3)
-        .optional()
-        .describe(
-            "Three-letter lowercase currency code (defaults to primary currency).",
-        ),
-    payee: z.string().max(140).optional().describe("Payee name."),
-    original_name: z.string().max(140).nullable().optional(),
-    category_id: z.coerce.number().nullable().optional(),
-    notes: z.string().max(350).nullable().optional(),
-    manual_account_id: z.coerce
-        .number()
+// Spec: custom_metadata on POST /transactions must not exceed 4096 characters
+// when stringified. The PUT endpoints carry no such limit.
+const fitsCustomMetadata = (value: Record<string, unknown>) =>
+    JSON.stringify(value).length <= 4096;
+
+// Spec: manual_account_id and plaid_account_id may not both be non-null.
+function checkAccountPair(
+    value: {
+        manual_account_id?: number | null;
+        plaid_account_id?: number | null;
+    },
+    ctx: z.RefinementCtx,
+) {
+    if (value.manual_account_id != null && value.plaid_account_id != null) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["plaid_account_id"],
+            message:
+                "manual_account_id and plaid_account_id cannot both be non-null on the same transaction. Set only one of them.",
+        });
+    }
+}
+
+type UpdateFieldsInput = {
+    id?: number;
+    manual_account_id?: number | null;
+    plaid_account_id?: number | null;
+    tag_ids?: number[];
+    additional_tag_ids?: number[];
+};
+
+// Spec: tag_ids and additional_tag_ids are mutually exclusive, and an update
+// must carry at least one writable field besides the id.
+function checkUpdateFields(value: UpdateFieldsInput, ctx: z.RefinementCtx) {
+    checkAccountPair(value, ctx);
+
+    if (value.tag_ids !== undefined && value.additional_tag_ids !== undefined) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["additional_tag_ids"],
+            message:
+                "tag_ids and additional_tag_ids cannot both be set. Use tag_ids to replace tags, or additional_tag_ids to add to them.",
+        });
+    }
+
+    const hasWritableField = Object.entries(value).some(
+        ([key, v]) => key !== "id" && v !== undefined,
+    );
+    if (!hasWritableField) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+                "Provide at least one writable field to update (for example category_id, notes, or tag_ids).",
+        });
+    }
+}
+
+const splitChildSchema = z.object({
+    amount: amount.describe(
+        "Amount of this split, as a number or a string with up to 4 decimal places. Sum of all children must equal the parent's amount.",
+    ),
+    payee: z.string().optional().describe("Defaults to the parent's payee."),
+    date: isoDate.optional().describe("Defaults to the parent's date."),
+    category_id: id
         .nullable()
         .optional()
         .describe(
-            "Manual account ID. Mutually exclusive with plaid_account_id.",
+            "Category ID. Omit to inherit the parent's category; null leaves the child uncategorized. Cannot be a category group.",
         ),
-    plaid_account_id: z.coerce
-        .number()
+    tag_ids: z
+        .array(id)
+        .optional()
+        .describe(
+            "Tag IDs to apply to this child. Each must match an existing tag.",
+        ),
+    notes: z
+        .string()
+        .max(350)
+        .nullable()
+        .optional()
+        .describe(
+            "Defaults to the parent's notes. null or an empty string leaves the child with no notes. Max 350 characters.",
+        ),
+});
+
+const insertTransactionSchema = z
+    .object({
+        date: isoDate.describe("Transaction date (YYYY-MM-DD)."),
+        amount: amount.describe(
+            "Numeric value (no currency symbol). Positive = debit, negative = credit. A number, or a string with up to 4 decimal places.",
+        ),
+        currency: currency
+            .optional()
+            .describe(
+                "Three-letter currency code, e.g. usd (case-insensitive). Defaults to the account's primary currency.",
+            ),
+        payee: z.string().optional().describe("Payee name."),
+        original_name: z
+            .string()
+            .nullable()
+            .optional()
+            .describe("Original payee name. Defaults to payee."),
+        category_id: id
+            .nullable()
+            .optional()
+            .describe(
+                "Category ID. Cannot be a category group. null or omitted means no category.",
+            ),
+        notes: z
+            .string()
+            .max(350)
+            .nullable()
+            .optional()
+            .describe("Transaction notes. Max 350 characters."),
+        manual_account_id: id
+            .nullable()
+            .optional()
+            .describe(
+                "Manual account ID. Mutually exclusive with plaid_account_id.",
+            ),
+        plaid_account_id: id
+            .nullable()
+            .optional()
+            .describe(
+                "Plaid account ID. Mutually exclusive with manual_account_id.",
+            ),
+        recurring_id: id
+            .nullable()
+            .optional()
+            .describe(
+                "Recurring item ID. The recurring item must belong to the same account.",
+            ),
+        status: writeStatusEnum.optional().describe("Defaults to unreviewed."),
+        tag_ids: z
+            .array(id)
+            .optional()
+            .describe("Tag IDs to apply. If omitted, no tags are applied."),
+        external_id: z
+            .string()
+            .max(75)
+            .nullable()
+            .optional()
+            .describe(
+                "User-defined external ID. With manual_account_id set, duplicate external IDs for that account are rejected.",
+            ),
+        custom_metadata: z
+            .record(z.string(), z.unknown())
+            .refine(
+                fitsCustomMetadata,
+                "custom_metadata must not exceed 4096 characters when stringified.",
+            )
+            .nullable()
+            .optional()
+            .describe(
+                "Arbitrary JSON object stored with the transaction (max 4096 characters when stringified).",
+            ),
+    })
+    .superRefine(checkAccountPair);
+
+const updateTransactionBase = z.object({
+    date: isoDate.optional().describe("New transaction date (YYYY-MM-DD)."),
+    amount: amount
+        .optional()
+        .describe(
+            "New amount, as a number or a string with up to 4 decimal places. Cannot be null.",
+        ),
+    currency: currency
+        .optional()
+        .describe("New three-letter currency code, e.g. usd."),
+    recurring_id: id
+        .nullable()
+        .optional()
+        .describe("Recurring item ID. null unlinks the recurring item."),
+    payee: z.string().optional().describe("New payee name."),
+    category_id: id
+        .nullable()
+        .optional()
+        .describe("Category ID. null clears the category."),
+    notes: z
+        .string()
+        .max(350)
+        .nullable()
+        .optional()
+        .describe(
+            "New notes, max 350 characters. An empty string clears the existing notes.",
+        ),
+    manual_account_id: id
+        .nullable()
+        .optional()
+        .describe(
+            "Manual account ID. null disassociates the transaction from its account. Mutually exclusive with plaid_account_id.",
+        ),
+    plaid_account_id: id
         .nullable()
         .optional()
         .describe(
             "Plaid account ID. Mutually exclusive with manual_account_id.",
         ),
-    recurring_id: z.coerce.number().nullable().optional(),
-    status: writeStatusEnum.optional(),
-    tag_ids: z.array(z.coerce.number()).optional(),
-    external_id: z.string().max(75).nullable().optional(),
-    custom_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
-});
-
-const updateTransactionFieldsSchema = z.object({
-    date: dateString.optional(),
-    amount: z.coerce.number().optional(),
-    currency: z.string().length(3).optional(),
-    payee: z.string().max(140).optional(),
-    category_id: z.coerce.number().nullable().optional(),
-    notes: z.string().max(350).nullable().optional(),
-    manual_account_id: z.coerce.number().nullable().optional(),
-    plaid_account_id: z.coerce.number().nullable().optional(),
-    recurring_id: z.coerce.number().nullable().optional(),
-    status: writeStatusEnum.optional(),
+    status: writeStatusEnum.optional().describe("New status."),
     tag_ids: z
-        .array(z.coerce.number())
+        .array(id)
         .optional()
         .describe(
-            "Replaces all existing tags on the transaction. Mutually exclusive with additional_tag_ids.",
+            "Replaces all existing tags on the transaction. An empty array removes all tags. Mutually exclusive with additional_tag_ids.",
         ),
     additional_tag_ids: z
-        .array(z.coerce.number())
+        .array(id)
         .optional()
         .describe(
             "Adds these tags to the existing transaction tags. Mutually exclusive with tag_ids.",
         ),
-    external_id: z.string().max(75).nullable().optional(),
-    custom_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    external_id: z
+        .string()
+        .max(75)
+        .nullable()
+        .optional()
+        .describe(
+            "User-defined external ID. The update fails if the transaction has no manual_account_id or another transaction already uses this external ID for that account.",
+        ),
+    custom_metadata: z
+        .record(z.string(), z.unknown())
+        .nullable()
+        .optional()
+        .describe("Arbitrary JSON object stored with the transaction."),
 });
+
+const updateTransactionFieldsSchema =
+    updateTransactionBase.superRefine(checkUpdateFields);
+
+const bulkUpdateEntrySchema = updateTransactionBase
+    .extend({
+        id: transactionId.describe(
+            "ID of the transaction to update (required).",
+        ),
+    })
+    .superRefine(checkUpdateFields);
 
 export function registerTransactionTools(server: McpServer) {
     server.registerTool(
@@ -129,64 +274,67 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Retrieve transactions, optionally filtered by date range, account, category, tag, recurring item, status, and more. Returns at most `limit` transactions (default 1000, max 2000); `has_more` is set on the response when more match the filters. Pending and split-parent / group-child transactions are excluded by default.",
             inputSchema: {
-                start_date: dateString
+                start_date: isoDate
                     .optional()
                     .describe(
-                        "Beginning of the date range. Required if end_date is set.",
+                        "Beginning of the date range (YYYY-MM-DD). Must be sent together with end_date.",
                     ),
-                end_date: dateString
+                end_date: isoDate
                     .optional()
                     .describe(
-                        "End of the date range. Required if start_date is set.",
+                        "End of the date range (YYYY-MM-DD). Must be sent together with start_date.",
                     ),
-                created_since: dateOrDateTimeString
+                created_since: dateOrDateTime
                     .optional()
                     .describe(
-                        "Only return transactions created after this timestamp.",
+                        "Only return transactions created after this timestamp, given as a date (YYYY-MM-DD) or ISO 8601 datetime. Date-only values are read as midnight UTC.",
                     ),
-                updated_since: dateOrDateTimeString
+                updated_since: dateOrDateTime
                     .optional()
                     .describe(
-                        "Only return transactions updated after this timestamp.",
+                        "Only return transactions updated after this timestamp, given as a date (YYYY-MM-DD) or ISO 8601 datetime. Date-only values are read as midnight UTC.",
                     ),
-                manual_account_id: z.coerce
-                    .number()
+                manual_account_id: filterId
                     .optional()
                     .describe(
-                        "Filter by manual account ID, or 0 to omit all manual-account transactions.",
+                        "Filter by manual account ID, or 0 to omit all manual-account transactions. 0 together with plaid_account_id 0 returns transactions with no account.",
                     ),
-                plaid_account_id: z.coerce
-                    .number()
+                plaid_account_id: filterId
                     .optional()
                     .describe(
-                        "Filter by Plaid account ID, or 0 to omit all Plaid-account transactions.",
+                        "Filter by Plaid account ID, or 0 to omit all Plaid-account transactions. 0 together with manual_account_id 0 returns transactions with no account.",
                     ),
-                recurring_id: z.coerce.number().optional(),
-                category_id: z.coerce
-                    .number()
+                recurring_id: id
+                    .optional()
+                    .describe("Filter by recurring item ID."),
+                category_id: filterId
                     .optional()
                     .describe(
                         "Filter by category ID. 0 returns only un-categorized transactions. Matches both leaf categories and category groups.",
                     ),
-                tag_id: z.coerce.number().optional(),
+                tag_id: id
+                    .optional()
+                    .describe("Filter to transactions that have this tag ID."),
                 is_group_parent: z
                     .boolean()
                     .optional()
                     .describe(
-                        "If true, returns only transaction groups (group parents).",
+                        "If true, returns only transaction groups (group parents). If false, returns only non-group transactions.",
                     ),
-                status: statusEnum.optional(),
+                status: statusEnum
+                    .optional()
+                    .describe("Filter by transaction status."),
                 is_pending: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Filter by pending status. Takes precedence over include_pending when set.",
+                        "Filter by pending status. true returns only pending transactions, false only non-pending. Takes precedence over include_pending when set.",
                     ),
                 include_pending: z
                     .boolean()
                     .optional()
                     .describe(
-                        "Include imported pending transactions in results.",
+                        "Include imported pending transactions in results. Defaults to false. Ignored when is_pending is set.",
                     ),
                 include_metadata: z
                     .boolean()
@@ -210,7 +358,7 @@ export function registerTransactionTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "Populate the `children` array on group/split parent transactions.",
+                        "Populate the `children` array on group parents with their grouped transactions, or, when include_split_parents is also set, on split parents with the transactions split from them.",
                     ),
                 include_files: z
                     .boolean()
@@ -220,6 +368,7 @@ export function registerTransactionTools(server: McpServer) {
                     ),
                 limit: z.coerce
                     .number()
+                    .int()
                     .min(1)
                     .max(2000)
                     .optional()
@@ -228,6 +377,7 @@ export function registerTransactionTools(server: McpServer) {
                     ),
                 offset: z.coerce
                     .number()
+                    .int()
                     .optional()
                     .describe(
                         "Offset for pagination. Use with `has_more` from a previous response.",
@@ -239,6 +389,15 @@ export function registerTransactionTools(server: McpServer) {
         },
         async (input) => {
             try {
+                if (
+                    (input.start_date === undefined) !==
+                    (input.end_date === undefined)
+                ) {
+                    return errorResponse(
+                        "Failed to get transactions: start_date and end_date must be provided together.",
+                    );
+                }
+
                 const params = new URLSearchParams();
                 for (const [key, value] of Object.entries(input)) {
                     if (value === undefined || value === null) continue;
@@ -270,9 +429,9 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Get details of a specific transaction. The response always includes plaid_metadata, custom_metadata, files, and (for split or group parents) the children array — none of which are returned by default in get_transactions.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction to retrieve."),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction to retrieve.",
+                ),
             },
             annotations: {
                 readOnlyHint: true,
@@ -313,7 +472,7 @@ export function registerTransactionTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "Apply rules associated with the transaction's manual_account_id.",
+                        "If true, apply the rules associated with each transaction's manual_account_id. Defaults to false.",
                     ),
                 skip_duplicates: z
                     .boolean()
@@ -325,7 +484,7 @@ export function registerTransactionTools(server: McpServer) {
                     .boolean()
                     .optional()
                     .describe(
-                        "If true, do not update the manual account's balance when inserting these transactions.",
+                        "If true, do not update the balances of the manual accounts these transactions are inserted into.",
                     ),
             },
             annotations: {
@@ -368,11 +527,11 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Update an existing transaction. Provide any subset of writable fields directly (the v2 API no longer wraps the body in a `transaction` envelope). Cannot modify split or grouped transactions; use the corresponding split/group tools instead.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction to update."),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction to update.",
+                ),
                 update: updateTransactionFieldsSchema.describe(
-                    "Fields to update. Provide at least one writable field.",
+                    "Fields to update. Provide at least one writable field. Nullable fields such as category_id accept null to clear them.",
                 ),
                 update_balance: z
                     .boolean()
@@ -413,9 +572,9 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Delete a single transaction. Fails for split/group transactions and their parents — unsplit/ungroup first. Irreversible.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction to delete."),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction to delete.",
+                ),
             },
             annotations: {
                 destructiveHint: true,
@@ -452,15 +611,7 @@ export function registerTransactionTools(server: McpServer) {
                 "Update multiple transactions in a single call (1-500). Each entry must include `id` plus at least one writable field. Cannot be used to modify split or grouped transactions.",
             inputSchema: {
                 transactions: z
-                    .array(
-                        updateTransactionFieldsSchema.extend({
-                            id: z.coerce
-                                .number()
-                                .describe(
-                                    "ID of the transaction to update (required).",
-                                ),
-                        }),
-                    )
+                    .array(bulkUpdateEntrySchema)
                     .min(1)
                     .max(500)
                     .describe(
@@ -498,7 +649,7 @@ export function registerTransactionTools(server: McpServer) {
                 "Bulk-delete transactions by ID (1-500). Fails if any ID is a split or group parent, or part of a split/group; unsplit or ungroup those first. Irreversible.",
             inputSchema: {
                 ids: z
-                    .array(z.coerce.number())
+                    .array(transactionId)
                     .min(1)
                     .max(500)
                     .describe("Array of transaction IDs to delete (1-500)."),
@@ -535,37 +686,42 @@ export function registerTransactionTools(server: McpServer) {
         "create_transaction_group",
         {
             description:
-                "Create a transaction group from 2-500 existing transactions. Source transactions are hidden from get_transactions and accessible via the new group's `children` (set include_children=true on get_single_transaction). Cannot include split or recurring transactions.",
+                "Create a transaction group from 2-500 existing transactions. Source transactions are hidden from get_transactions; the new group's `children` are returned by get_single_transaction on the group's ID. Cannot include split or recurring transactions, and transactions that are already grouped must be ungrouped (delete_transaction_group) before being regrouped.",
             inputSchema: {
                 ids: z
-                    .array(z.coerce.number())
+                    .array(transactionId)
                     .min(2)
                     .max(500)
                     .describe(
-                        "IDs of existing transactions to group together.",
+                        "IDs of existing transactions to group together (2-500). Split and recurring transactions cannot be grouped, and transactions already in a group must be ungrouped first.",
                     ),
-                date: dateString.describe(
+                date: isoDate.describe(
                     "Date for the new grouped transaction (YYYY-MM-DD).",
                 ),
                 payee: z
                     .string()
-                    .max(140)
                     .describe("Payee for the new grouped transaction."),
-                category_id: z.coerce
-                    .number()
+                category_id: id
                     .nullable()
                     .optional()
                     .describe(
                         "Category for the group. If unset and all children share a category, the group inherits it.",
                     ),
-                notes: z.string().max(350).nullable().optional(),
+                notes: z
+                    .string()
+                    .max(350)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Notes for the new grouped transaction. Max 350 characters.",
+                    ),
                 status: writeStatusEnum
                     .optional()
                     .describe(
                         "Status for the new grouped transaction. Defaults to reviewed.",
                     ),
                 tag_ids: z
-                    .array(z.coerce.number())
+                    .array(id)
                     .optional()
                     .describe("Tag IDs to apply to the new group."),
             },
@@ -603,11 +759,9 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Delete (ungroup) a transaction group. The original child transactions remain and revert to normal ungrouped transactions.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe(
-                        "ID of the transaction group (the group parent transaction) to delete.",
-                    ),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction group (the group parent transaction) to delete.",
+                ),
             },
             annotations: {
                 destructiveHint: true,
@@ -643,15 +797,15 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Split an existing transaction into 2-500 child transactions. The sum of child amounts must equal the parent's amount. After splitting, the parent is hidden from get_transactions and accessible via get_single_transaction (returns the parent with `children`).",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction to split."),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction to split.",
+                ),
                 child_transactions: z
                     .array(splitChildSchema)
                     .min(2)
                     .max(500)
                     .describe(
-                        "Children to create. Sum of amounts must equal the parent's amount.",
+                        "Children to create (2-500). Sum of amounts must equal the parent's amount.",
                     ),
             },
             annotations: {
@@ -685,11 +839,9 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Unsplit a previously split transaction by deleting its children and restoring the parent. Pass the parent (split_parent_id) — not a child — as the path id.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe(
-                        "ID of the previously split parent transaction. Use the split_parent_id of a split child to find it.",
-                    ),
+                transaction_id: transactionId.describe(
+                    "ID of the previously split parent transaction. Use the split_parent_id of a split child to find it.",
+                ),
             },
             annotations: {
                 destructiveHint: true,
@@ -725,9 +877,9 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Attach a local image or PDF receipt (max 10MB) to a transaction. Allowed types: image/jpeg, image/png, image/heic, image/heif, application/pdf. The file is read from the local filesystem of the host running this MCP server, and its type is determined from its actual contents — files that are not a real image or PDF are rejected. If LUNCHMONEY_ATTACHMENTS_DIR is set on the host, only files inside that directory can be attached.",
             inputSchema: {
-                transaction_id: z.coerce
-                    .number()
-                    .describe("ID of the transaction to attach the file to."),
+                transaction_id: transactionId.describe(
+                    "ID of the transaction to attach the file to.",
+                ),
                 file_path: z
                     .string()
                     .describe(
@@ -806,9 +958,7 @@ export function registerTransactionTools(server: McpServer) {
             description:
                 "Get a short-lived signed download URL for a transaction file attachment. The response includes the URL and an `expires_at` timestamp.",
             inputSchema: {
-                file_id: z.coerce
-                    .number()
-                    .describe("ID of the file attachment."),
+                file_id: id.describe("ID of the file attachment."),
             },
             annotations: {
                 readOnlyHint: true,
@@ -839,9 +989,7 @@ export function registerTransactionTools(server: McpServer) {
         {
             description: "Delete a transaction file attachment. Irreversible.",
             inputSchema: {
-                file_id: z.coerce
-                    .number()
-                    .describe("ID of the file attachment to delete."),
+                file_id: id.describe("ID of the file attachment to delete."),
             },
             annotations: {
                 destructiveHint: true,

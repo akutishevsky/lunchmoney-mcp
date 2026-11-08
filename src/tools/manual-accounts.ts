@@ -3,10 +3,12 @@ import { z } from "zod";
 import {
     api,
     dataResponse,
+    errorResponse,
     handleApiError,
     catchError,
     successResponse,
 } from "../api.js";
+import { amount, currency, id, isoDateOrDateTime } from "../schemas.js";
 
 const manualAccountTypeEnum = z.enum([
     "cash",
@@ -20,6 +22,21 @@ const manualAccountTypeEnum = z.enum([
     "real estate",
     "vehicle",
 ]);
+
+const manualAccountStatusEnum = z.enum(["active", "closed"]);
+
+// The spec caps custom_metadata at 4096 characters once stringified.
+const customMetadata = z
+    .record(z.string(), z.unknown())
+    .refine(
+        (value) => JSON.stringify(value).length <= 4096,
+        "custom_metadata must not exceed 4096 characters when stringified.",
+    )
+    .nullable()
+    .optional()
+    .describe(
+        "Optional JSON object with additional data about the account. Pass null to clear it on update.",
+    );
 
 export function registerManualAccountTools(server: McpServer) {
     server.registerTool(
@@ -54,11 +71,9 @@ export function registerManualAccountTools(server: McpServer) {
         {
             description: "Get details of a single manual account by ID.",
             inputSchema: {
-                accountId: z.coerce
-                    .number()
-                    .describe(
-                        "Id of the manual account to query. Call get_all_manual_accounts first to discover ids.",
-                    ),
+                accountId: id.describe(
+                    "Id of the manual account to query. Call get_all_manual_accounts first to discover ids.",
+                ),
             },
             annotations: {
                 readOnlyHint: true,
@@ -93,9 +108,12 @@ export function registerManualAccountTools(server: McpServer) {
                 ),
                 subtype: z
                     .string()
+                    .min(1)
+                    .max(100)
+                    .nullable()
                     .optional()
                     .describe(
-                        "Optional subtype (e.g., retirement, checking, savings).",
+                        "Optional subtype (e.g., retirement, checking, savings). Omit or pass null for none.",
                     ),
                 name: z
                     .string()
@@ -104,36 +122,53 @@ export function registerManualAccountTools(server: McpServer) {
                     .describe("Name of the account. 1-45 characters."),
                 display_name: z
                     .string()
+                    .nullable()
                     .optional()
                     .describe(
-                        "Display name. If unset, derived from institution_name and name.",
+                        "Display name. If omitted or null, derived from institution_name and name. An explicitly set display name must be unique.",
                     ),
-                balance: z.coerce
-                    .number()
-                    .describe("Current balance of the account."),
-                balance_as_of: z
-                    .string()
+                balance: amount.describe(
+                    "Current balance of the account, as a number or a string with up to 4 decimal places.",
+                ),
+                balance_as_of: isoDateOrDateTime
                     .optional()
                     .describe(
-                        "Date or datetime the balance is as of (ISO 8601).",
+                        "Date or datetime the balance is as of: YYYY-MM-DD or ISO 8601 date-time.",
                     ),
-                currency: z
-                    .string()
-                    .length(3)
+                currency: currency
                     .optional()
                     .describe(
-                        "Three-letter lowercase currency code (defaults to primary currency).",
+                        "Three-letter currency code, e.g. usd (defaults to primary currency). Uppercase input is lowercased.",
+                    ),
+                status: manualAccountStatusEnum
+                    .optional()
+                    .describe(
+                        "Status of the account. Defaults to active. Must be closed when closed_on is set.",
                     ),
                 institution_name: z
                     .string()
-                    .optional()
-                    .describe("Name of the institution holding the account."),
-                closed_on: z
-                    .string()
+                    .min(1)
+                    .max(50)
+                    .nullable()
                     .optional()
                     .describe(
-                        "Date the account was closed (YYYY-MM-DD). If set, status is forced to closed.",
+                        "Name of the institution holding the account. Omit or pass null for none.",
                     ),
+                closed_on: isoDateOrDateTime
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Date the account was closed: YYYY-MM-DD or ISO 8601 date-time. Requires status to be closed.",
+                    ),
+                external_id: z
+                    .string()
+                    .max(75)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Optional user-defined ID for the account (max 75 characters).",
+                    ),
+                custom_metadata: customMetadata,
                 exclude_from_transactions: z
                     .boolean()
                     .optional()
@@ -153,15 +188,26 @@ export function registerManualAccountTools(server: McpServer) {
             balance,
             balance_as_of,
             currency,
+            status,
             institution_name,
             closed_on,
+            external_id,
+            custom_metadata,
             exclude_from_transactions,
         }) => {
+            // The API only accepts closed_on alongside status "closed", and
+            // status defaults to "active" when omitted.
+            if (closed_on && status !== "closed") {
+                return errorResponse(
+                    'closed_on requires status to be "closed". Set status to "closed" or omit closed_on.',
+                );
+            }
+
             try {
                 const body: Record<string, unknown> = {
                     type,
                     name,
-                    balance: balance.toString(),
+                    balance,
                 };
 
                 if (subtype !== undefined) body.subtype = subtype;
@@ -170,9 +216,13 @@ export function registerManualAccountTools(server: McpServer) {
                 if (balance_as_of !== undefined)
                     body.balance_as_of = balance_as_of;
                 if (currency !== undefined) body.currency = currency;
+                if (status !== undefined) body.status = status;
                 if (institution_name !== undefined)
                     body.institution_name = institution_name;
                 if (closed_on !== undefined) body.closed_on = closed_on;
+                if (external_id !== undefined) body.external_id = external_id;
+                if (custom_metadata !== undefined)
+                    body.custom_metadata = custom_metadata;
                 if (exclude_from_transactions !== undefined)
                     body.exclude_from_transactions = exclude_from_transactions;
 
@@ -196,21 +246,80 @@ export function registerManualAccountTools(server: McpServer) {
         "update_manual_account",
         {
             description:
-                "Update an existing manually-managed account. (Formerly `update_asset`.)",
+                "Update an existing manually-managed account. Provide at least one field to change. (Formerly `update_asset`.)",
             inputSchema: {
-                accountId: z.coerce
-                    .number()
-                    .describe("Id of the manual account to update."),
-                type: manualAccountTypeEnum.optional(),
-                subtype: z.string().optional(),
-                name: z.string().min(1).max(45).optional(),
-                display_name: z.string().nullable().optional(),
-                balance: z.coerce.number().optional(),
-                balance_as_of: z.string().optional(),
-                currency: z.string().length(3).optional(),
-                institution_name: z.string().nullable().optional(),
-                closed_on: z.string().nullable().optional(),
-                exclude_from_transactions: z.boolean().optional(),
+                accountId: id.describe("Id of the manual account to update."),
+                type: manualAccountTypeEnum
+                    .optional()
+                    .describe("New primary type of the manual account."),
+                subtype: z
+                    .string()
+                    .min(1)
+                    .max(100)
+                    .nullable()
+                    .optional()
+                    .describe("New subtype. Pass null to clear it."),
+                name: z
+                    .string()
+                    .min(1)
+                    .max(45)
+                    .optional()
+                    .describe("New name of the account. 1-45 characters."),
+                display_name: z
+                    .string()
+                    .nullable()
+                    .optional()
+                    .describe("New display name. Must be unique."),
+                balance: amount
+                    .optional()
+                    .describe(
+                        "New current balance, as a number or a string with up to 4 decimal places.",
+                    ),
+                balance_as_of: isoDateOrDateTime
+                    .optional()
+                    .describe(
+                        "Date or datetime the balance is as of: YYYY-MM-DD or ISO 8601 date-time. Ignored unless balance is also set.",
+                    ),
+                currency: currency
+                    .optional()
+                    .describe(
+                        "New three-letter currency code, e.g. usd. Uppercase input is lowercased.",
+                    ),
+                status: manualAccountStatusEnum
+                    .optional()
+                    .describe(
+                        "New status. Setting closed without closed_on sets closed_on to today.",
+                    ),
+                institution_name: z
+                    .string()
+                    .min(1)
+                    .max(50)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Name of the institution holding the account. Pass null to clear it.",
+                    ),
+                closed_on: isoDateOrDateTime
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Date the account was closed: YYYY-MM-DD or ISO 8601 date-time. Pass null to clear it. Closing an account that is not already closed also requires status to be closed.",
+                    ),
+                external_id: z
+                    .string()
+                    .max(75)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "User-defined ID for the account (max 75 characters). Pass null to clear it.",
+                    ),
+                custom_metadata: customMetadata,
+                exclude_from_transactions: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "If true, transactions cannot be assigned to this account.",
+                    ),
             },
             annotations: {
                 idempotentHint: true,
@@ -225,10 +334,21 @@ export function registerManualAccountTools(server: McpServer) {
             balance,
             balance_as_of,
             currency,
+            status,
             institution_name,
             closed_on,
+            external_id,
+            custom_metadata,
             exclude_from_transactions,
         }) => {
+            // A non-null closed_on means the account is closed, so a status of
+            // "active" in the same request contradicts it.
+            if (closed_on && status === "active") {
+                return errorResponse(
+                    'closed_on cannot be set with status "active". Set status to "closed" or clear closed_on.',
+                );
+            }
+
             try {
                 const body: Record<string, unknown> = {};
 
@@ -237,15 +357,25 @@ export function registerManualAccountTools(server: McpServer) {
                 if (name !== undefined) body.name = name;
                 if (display_name !== undefined)
                     body.display_name = display_name;
-                if (balance !== undefined) body.balance = balance.toString();
+                if (balance !== undefined) body.balance = balance;
                 if (balance_as_of !== undefined)
                     body.balance_as_of = balance_as_of;
                 if (currency !== undefined) body.currency = currency;
+                if (status !== undefined) body.status = status;
                 if (institution_name !== undefined)
                     body.institution_name = institution_name;
                 if (closed_on !== undefined) body.closed_on = closed_on;
+                if (external_id !== undefined) body.external_id = external_id;
+                if (custom_metadata !== undefined)
+                    body.custom_metadata = custom_metadata;
                 if (exclude_from_transactions !== undefined)
                     body.exclude_from_transactions = exclude_from_transactions;
+
+                if (Object.keys(body).length === 0) {
+                    return errorResponse(
+                        "Provide at least one field to update on the manual account.",
+                    );
+                }
 
                 const response = await api.put(
                     `/manual_accounts/${accountId}`,
@@ -270,16 +400,14 @@ export function registerManualAccountTools(server: McpServer) {
         "delete_manual_account",
         {
             description:
-                "Delete a manually-managed account. Optionally also delete its transactions/rules/recurring items, and/or its balance history. Both deletion options are irreversible.",
+                "Delete a manually-managed account. Optionally also delete its transactions/rules/recurring items (irreversible), and/or its balance history.",
             inputSchema: {
-                accountId: z.coerce
-                    .number()
-                    .describe("Id of the manual account to delete."),
+                accountId: id.describe("Id of the manual account to delete."),
                 delete_items: z
                     .boolean()
                     .optional()
                     .describe(
-                        "If true, also deletes any transactions, rules, and recurring items associated with this account.",
+                        "If true, also deletes any transactions, rules, and recurring items associated with this account. Irreversible.",
                     ),
                 delete_balance_history: z
                     .boolean()
@@ -295,9 +423,9 @@ export function registerManualAccountTools(server: McpServer) {
         async ({ accountId, delete_items, delete_balance_history }) => {
             try {
                 const params = new URLSearchParams();
-                if (delete_items)
+                if (delete_items !== undefined)
                     params.append("delete_items", String(delete_items));
-                if (delete_balance_history)
+                if (delete_balance_history !== undefined)
                     params.append(
                         "delete_balance_history",
                         String(delete_balance_history),

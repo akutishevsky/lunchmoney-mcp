@@ -66,6 +66,16 @@ export async function getErrorMessage(
                     return `${fallbackMessage} (${response.status}): ${combined}`;
                 }
             }
+            // Flat budgetInvalidPeriodErrorObject 400: the error fields sit at
+            // the top level instead of inside errors[].
+            if (typeof json.errMsg === "string") {
+                const top =
+                    typeof json.message === "string" ? json.message : "";
+                const combined = top
+                    ? `${top}: ${formatV2Error(json)}`
+                    : formatV2Error(json);
+                return `${fallbackMessage} (${response.status}): ${combined}`;
+            }
             const detail = json.error ?? json.message ?? json.name;
             if (detail) {
                 const message = Array.isArray(detail)
