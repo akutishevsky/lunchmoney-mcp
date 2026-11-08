@@ -92,7 +92,7 @@ const insertTransactionSchema = z.object({
     status: writeStatusEnum.optional(),
     tag_ids: z.array(z.coerce.number()).optional(),
     external_id: z.string().max(75).nullable().optional(),
-    custom_metadata: z.record(z.unknown()).nullable().optional(),
+    custom_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 const updateTransactionFieldsSchema = z.object({
@@ -119,7 +119,7 @@ const updateTransactionFieldsSchema = z.object({
             "Adds these tags to the existing transaction tags. Mutually exclusive with tag_ids.",
         ),
     external_id: z.string().max(75).nullable().optional(),
-    custom_metadata: z.record(z.unknown()).nullable().optional(),
+    custom_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export function registerTransactionTools(server: McpServer) {
