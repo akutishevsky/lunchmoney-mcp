@@ -3,6 +3,9 @@ name: Publish to MCP Registry
 on:
     push:
         branches: [main]
+    # Lets a failed or partial release be retried from the Actions tab.
+    # The checks below make a rerun publish only what is still missing.
+    workflow_dispatch:
 
 # Avoid overlapping publishes if commits land in quick succession
 concurrency:
@@ -26,57 +29,106 @@ jobs:
                   node-version: "lts/*"
                   registry-url: "https://registry.npmjs.org"
 
-            # Publish only when package.json has a version not yet on npm.
-            # This makes every push to main safe: non-release commits just no-op.
-            - name: Check whether this version needs publishing
-              id: check
+            # npm and the MCP Registry are checked separately, so a release that
+            # reached npm but not the registry can be finished by a rerun.
+            # Non-release commits find both already published and no-op.
+            - name: Check whether npm needs this version
+              id: npm
               run: |
-                  LOCAL=$(node -p "require('./package.json').version")
-                  PUBLISHED=$(npm view "$(node -p "require('./package.json').name")" version 2>/dev/null || echo "none")
-                  echo "local=$LOCAL published=$PUBLISHED"
-                  if [ "$LOCAL" = "$PUBLISHED" ]; then
-                    echo "Version $LOCAL already published — skipping."
-                    echo "should_publish=false" >> "$GITHUB_OUTPUT"
+                  NAME=$(node -p "require('./package.json').name")
+                  VERSION=$(node -p "require('./package.json').version")
+                  # Compare the output: some npm versions exit 0 with empty
+                  # output for a version that does not exist.
+                  if [ "$(npm view "$NAME@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+                    echo "$NAME@$VERSION is already on npm — skipping npm publish."
+                    echo "publish=false" >> "$GITHUB_OUTPUT"
                   else
-                    echo "should_publish=true" >> "$GITHUB_OUTPUT"
+                    echo "$NAME@$VERSION is not on npm yet."
+                    echo "publish=true" >> "$GITHUB_OUTPUT"
                   fi
+
+            - name: Check whether the MCP Registry needs this version
+              id: registry
+              run: |
+                  NAME=$(node -p "require('./server.json').name")
+                  VERSION=$(node -p "require('./server.json').version")
+                  URL="https://registry.modelcontextprotocol.io/v0/servers/$(node -p "encodeURIComponent('$NAME')")/versions/$VERSION"
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 3 "$URL")
+                  case "$STATUS" in
+                    200) echo "$NAME $VERSION is already in the MCP Registry — skipping."
+                         echo "publish=false" >> "$GITHUB_OUTPUT" ;;
+                    404) echo "$NAME $VERSION is not in the MCP Registry yet."
+                         echo "publish=true" >> "$GITHUB_OUTPUT" ;;
+                    *)   echo "::error::Unexpected HTTP $STATUS from $URL"
+                         exit 1 ;;
+                  esac
 
             ### Publish underlying npm package:
 
             - name: Install dependencies
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.npm.outputs.publish == 'true'
               run: npm ci
 
             - name: Run tests
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.npm.outputs.publish == 'true'
               run: npm run test --if-present
 
             - name: Build package
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.npm.outputs.publish == 'true'
               run: npm run build
 
             # Trusted publishing (OIDC) needs npm >= 11.5.1. It authenticates
             # with the id-token permission above instead of a stored token,
             # and attaches provenance automatically.
             - name: Upgrade npm for trusted publishing
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.npm.outputs.publish == 'true'
               run: npm install -g npm@^11.5.1
 
             - name: Publish package to npm
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.npm.outputs.publish == 'true'
               run: npm publish --access public
 
             ### Publish MCP server:
 
-            - name: Install mcp-publisher
-              if: steps.check.outputs.should_publish == 'true'
+            # The registry checks the npm package when publishing, and a fresh
+            # npm publish can take a few minutes to become visible.
+            - name: Wait for this version to be visible on npm
+              if: steps.registry.outputs.publish == 'true'
               run: |
-                  curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+                  NAME=$(node -p "require('./package.json').name")
+                  VERSION=$(node -p "require('./package.json').version")
+                  for i in $(seq 1 40); do
+                    if [ "$(npm view "$NAME@$VERSION" version --prefer-online 2>/dev/null)" = "$VERSION" ]; then
+                      echo "$NAME@$VERSION is visible on npm."
+                      exit 0
+                    fi
+                    echo "Waiting for $NAME@$VERSION on npm ($i/40)..."
+                    sleep 15
+                  done
+                  echo "::error::$NAME@$VERSION did not appear on npm within 10 minutes."
+                  exit 1
+
+            # Downloads through the GitHub API with gh: the github.com
+            # releases/download URLs have returned 504s, and curl without -f
+            # piped the error page into tar.
+            - name: Install mcp-publisher
+              if: steps.registry.outputs.publish == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  ASSET="mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz"
+                  for i in 1 2 3 4 5; do
+                    gh release download --repo modelcontextprotocol/registry --pattern "$ASSET" --clobber && break
+                    echo "Download failed ($i/5), retrying..."
+                    sleep 10
+                  done
+                  tar xzf "$ASSET" mcp-publisher
+                  test -x ./mcp-publisher
 
             - name: Authenticate to MCP Registry
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.registry.outputs.publish == 'true'
               run: ./mcp-publisher login github-oidc
 
             - name: Publish server to MCP Registry
-              if: steps.check.outputs.should_publish == 'true'
+              if: steps.registry.outputs.publish == 'true'
               run: ./mcp-publisher publish
