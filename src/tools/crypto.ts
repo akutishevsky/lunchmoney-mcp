@@ -21,12 +21,22 @@ export function registerCryptoTools(server: McpServer) {
         "get_supported_cryptocurrencies",
         {
             description:
-                "Get the list of cryptocurrencies supported for manual tracking. The `symbol` of an entry here is what must be passed to create_manual_crypto.",
+                "Get the list of cryptocurrencies supported for manual tracking. The `symbol` of an entry here is what must be passed to create_manual_crypto. The full list has well over a thousand entries, so pass `search` when looking for a specific coin.",
+            inputSchema: {
+                search: z
+                    .string()
+                    .trim()
+                    .min(1)
+                    .optional()
+                    .describe(
+                        "Case-insensitive text matched against each coin's symbol, name, and CoinGecko id (e.g. 'eth' or 'cardano'). Exact symbol matches are listed first. Omit to return the full list.",
+                    ),
+            },
             annotations: {
                 readOnlyHint: true,
             },
         },
-        async () => {
+        async ({ search }) => {
             try {
                 const response = await api.get("/cryptocurrencies");
 
@@ -39,7 +49,23 @@ export function registerCryptoTools(server: McpServer) {
 
                 const data: { cryptocurrencies: Cryptocurrency[] } =
                     await response.json();
-                return dataResponse(data);
+                if (search === undefined) return dataResponse(data);
+
+                // The endpoint takes no filter parameters, so filter here to
+                // keep the full ~1,500-entry list out of the model's context.
+                const needle = search.toLowerCase();
+                const matches = data.cryptocurrencies
+                    .filter((c) =>
+                        [c.symbol, c.full_name, c.coingecko_id].some((field) =>
+                            field?.toLowerCase().includes(needle),
+                        ),
+                    )
+                    .sort(
+                        (a, b) =>
+                            Number(b.symbol.toLowerCase() === needle) -
+                            Number(a.symbol.toLowerCase() === needle),
+                    );
+                return dataResponse({ cryptocurrencies: matches });
             } catch (error) {
                 return catchError(
                     error,

@@ -30,6 +30,7 @@ Inputs that previously reached the API and failed (or were silently coerced) are
     - `get_account_settings` and `update_account_settings`: account-wide currencies, locale, display name and rule automation.
     - `get_user_settings` and `update_user_settings`: user-wide date and time display preferences.
     - `get_user_account_settings` and `update_user_account_settings`: transaction review behaviour and the default manual account.
+- **`search` on `get_supported_cryptocurrencies`.** The endpoint returns well over a thousand coins and takes no filters, so the tool now filters by symbol, name or CoinGecko id when `search` is given, with exact symbol matches first.
     - The update tools need at least one field. Note that the spec marks all three PUT request schemas and the format enums as `x-internal`, so public support for the writes is uncertain.
 - **Shared validators** in `src/schemas.ts`: `currency`, `locale`, `amount`, `cryptoBalance`, `id`, `isoDate`, and the user-settings format enums.
 - **Missing request fields** from the spec:

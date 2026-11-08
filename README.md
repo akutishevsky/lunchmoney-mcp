@@ -382,7 +382,7 @@ Here are some example prompts you can use with the LunchMoney MCP server:
 
 ### Crypto Tools
 
-- `get_supported_cryptocurrencies` - List the cryptocurrencies supported for manual tracking
+- `get_supported_cryptocurrencies` - List the cryptocurrencies supported for manual tracking (optional `search` filter)
 - `add_supported_cryptocurrency` - Add a cryptocurrency to the supported list from its CoinGecko coin-page URL
 - `get_all_manual_crypto` - List all manually-managed crypto balances
 - `get_single_manual_crypto` - Get a single manually-managed crypto balance by ID

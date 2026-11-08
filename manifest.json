@@ -207,7 +207,7 @@
         },
         {
             "name": "get_supported_cryptocurrencies",
-            "description": "Get the list of cryptocurrencies supported for manual tracking. Provides the symbols accepted by create_manual_crypto."
+            "description": "Get the list of cryptocurrencies supported for manual tracking, optionally filtered by symbol or name. Provides the symbols accepted by create_manual_crypto."
         },
         {
             "name": "add_supported_cryptocurrency",
