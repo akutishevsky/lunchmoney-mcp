@@ -5,6 +5,7 @@ import {
     dataResponse,
     handleApiError,
     catchError,
+    errorResponse,
     successResponse,
 } from "../api.js";
 import {
@@ -293,6 +294,14 @@ export function registerCryptoTools(server: McpServer) {
                     body.display_name = display_name;
                 if (institution_name !== undefined)
                     body.institution_name = institution_name;
+
+                // The spec's update schema has no required fields, but the
+                // live API rejects an empty body with a 400.
+                if (Object.keys(body).length === 0) {
+                    return errorResponse(
+                        "Failed to update manual crypto balance: at least one property must be provided: name, display_name, institution_name, or balance.",
+                    );
+                }
 
                 const response = await api.put(
                     `/crypto/manual/${crypto_id}`,

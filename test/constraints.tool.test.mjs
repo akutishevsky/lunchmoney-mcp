@@ -104,6 +104,14 @@ describe("spec constraints — rejected before any request", () => {
         );
     });
 
+    // The spec allows {} here, but the live API answers 400.
+    it("update_manual_crypto rejects a call with only the id", async () => {
+        assertRejected(
+            await call("update_manual_crypto", { crypto_id: 1 }),
+            /at least one property/,
+        );
+    });
+
     it("create_manual_account rejects closed_on unless status is closed", async () => {
         assertRejected(
             await call("create_manual_account", {
